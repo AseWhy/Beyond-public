@@ -1,0 +1,22 @@
+.imbedded
+    style
+        include ../data/styles/items.css
+    .workflow
+        .header
+            input.searcher#search(type="text", placeholder="Поиск по предметам...")
+            #actions
+                .open-types-editor T
+            #infocont
+        .body(action='0')#bodycont
+            .section
+                .section-header Список предметов
+                .section-body#serchresultstarget
+                    ul
+            .section
+                .section-header Свойства предмета
+                .section-body
+                    .entry-properties#properties
+            .section
+                .section-header Свойства типа
+                .section-body
+                    .entry-properties#type_properties

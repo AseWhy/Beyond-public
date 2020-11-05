@@ -1,0 +1,26 @@
+.imbedded
+    style
+        include ../data/styles/map.css
+    .workflow
+        .tools
+            .cont-import.disableing
+                label.fi-mask(for="importer_map") Данные карты (.map)
+                    label.filename Не выбрано
+                input#importer_map.importer(type="file", accept=".map")
+            .cont-import.disableing
+                label.fi-mask(for="importer_prov") Данные провинций (Cells)
+                    label.filename Не выбрано
+                input#importer_prov.importer(type="file", accept=".geojson")
+            .cont-import.disableing
+                label.fi-mask(for="importer_road") Данные дорог (Routes)
+                    label.filename Не выбрано
+                input#importer_road.importer(type="file", accept=".geojson")
+            .cont-action
+                .button.disableing#load_map Выгрузить
+                .button.disableing#save_map Сохранить
+            #infocont
+            .properties.disableing
+                .header Свойства
+                .content#properties_renderer
+        .render-cont
+            canvas.map-renderer#renderer

@@ -1,0 +1,80 @@
+{
+    "config_name": "default",
+    "std_out": true,
+    "log_time": true,
+    "minimize_web": false,
+    "handle_vk": false,
+    "max_transaction_attempts": 5,
+    "connection": {
+        "vk" : {
+            "version" : "",
+            "token" : ""
+        },
+        "mysql": {
+            "host": "",
+            "username" : "",
+            "password" : "",
+            "inits": {
+                "beyond_common": "init.common.sql",
+                "beyond_map": "init.map.sql",
+                "beyond_admin": "init.admin.sql",
+                "beyond_items": "init.items.sql"
+            }
+        }
+    },
+    "app": {
+        "name": "Beyond",
+        "dev_version": "alpha ~0.6.*",
+        "public_version": "release ~2.0.*",
+        "description": "Приветствуем тебя в проекте BEYOND! Это - генератор историй восхождения и падения империй. В этом холодном мире вы не сможете добиться чего-то в одиночку. Заключайте союзы, объединяйтесь в группы, постепенно получая влияние на материк и его население. Тщательно продумывайте каждый свой шаг. Или откройте своё дело и зарабатывайте деньги посредством корпорации, достигая своей цели капиталом, а не политикой."
+    },
+    "pools": {
+        "common": {
+            "name" : "beyond_common"
+        },
+        "map" : {
+            "name" : "beyond_map"
+        },
+        "admin" : {
+            "name" : "beyond_admin"
+        },
+        "item" : {
+            "name" : "beyond_items"
+        }
+    },
+    "businesses": {
+        "update": 3600000,
+        "namespace": "iua-businesses-updater"
+    },
+    "binder": {
+        "udates_per_minute": 2
+    },
+    "updater": {
+        "default_update_interval": 60000
+    },
+    "statistics": {
+        "max_stack_length": 50
+    },
+    "logger" : {
+        "file_count_limit" : 50
+    },
+    "map": {
+        "distance_multiplier": 24000,
+        "common_id": 77842227,
+        "updater_namespace": "iua-districts-updater"
+    },
+    "command_emitter": {
+        "command_prefix" : "!",
+        "max_time_to_command_excecute": 300000,
+        "max_user_connections": 1
+    },
+    "web_control_panel": {
+        "port": 3000
+    },
+    "paths": {
+        "scenario_path": "./scenarios",
+        "logs_path": "./logs/",
+        "sql_initors": "./sql/",
+        "web_control": "./control/"
+    }
+}

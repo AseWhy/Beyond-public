@@ -1,0 +1,30 @@
+doctype html
+html(lang="ru")
+  head
+    title Beyond - панель управления
+    link(rel="stylesheet", href="/styles/main.css?nocache")
+    link(rel="shortcut icon", href="/images/logo.png", type="image/png")
+    meta(http-equiv="Content-Type", content="text/html;charset=UTF-8")
+    script(src="/scripts/assembled.libs.js")
+    script(src="/scripts/run-on.utils.js?nocache")
+    script(src="/scripts/ui.performing.js?nocache")
+  body
+    .container.waiting_login#maincontainer
+      .box_header
+        .box.miniprofile
+            img.avatar#useravatar(src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+            .profile
+                .name#username
+                .role#userrole
+        .box.logout#userlogout
+        .box.header_cont
+            .header
+                .button(data-page="common") Общая информация
+                .button(data-page="logs") Логи
+                .button(data-page="items") Предметы
+                .button(data-page="map") Карта
+                .button(data-page="districts") Районы
+                .button(data-page="businesses") Бизнесы и Работы
+                .button(data-page="users") Пользователи
+                .button(data-page="characters") Персонажи
+      .box.bodytarget#bodytarget

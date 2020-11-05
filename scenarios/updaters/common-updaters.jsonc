@@ -1,0 +1,126 @@
+{
+    "name": "Общий сценарий для обновлений параметров игроков",
+    "id": "common-updaters", // Будет вызываться каждую минуту для пользователей находящихся дома.
+    "use_state": false,
+    "use_character": true,
+    "notify_error": false,
+    "import": [],
+    "preset": {},
+    "condition": "false", // Невыполняемый напрямую сценарий
+    "entries": [
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Палатка'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 3 ? character.endurance.value + 3 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Палатка
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.05 < character.health.max ? character.health.value + character.health.max * 0.05 : character.health.max) : character.health.max",
+                    "condition": "true" // Палатка
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Барак'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 6 ? character.endurance.value + 6 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Барак
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.08 < character.health.max ? character.health.value + character.health.max * 0.08 : character.health.max) : character.health.max",
+                    "condition": "true" // Барак
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Дом'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 10 ? character.endurance.value + 10 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Дом
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.12 < character.health.max ? character.health.value + character.health.max * 0.12 : character.health.max) : character.health.max",
+                    "condition": "true" // Дом
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Особняк'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 15 ? character.endurance.value + 15 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Особняк
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.15 < character.health.max ? character.health.value + character.health.max * 0.15 : character.health.max) : character.health.max",
+                    "condition": "true" // Особняк
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Дворец'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 25 ? character.endurance.value + 25 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Дворец
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.2 < character.health.max ? character.health.value + character.health.max * 0.2 : character.health.max) : character.health.max",
+                    "condition": "true" // Дворец
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
+            "condition": "zone.name = 'Таверна'",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < character.endurance.max ? (character.endurance.max - character.endurance.value > 10 ? character.endurance.value + 10 : character.endurance.max) : character.endurance.max",
+                    "condition": "true" // Таверна
+                },
+                {
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value < character.health.max ? (character.health.value + character.health.max * 0.1 < character.health.max ? character.health.value + character.health.max * 0.1 : character.health.max) : character.health.max",
+                    "condition": "true" // Таверна
+                }
+            ]
+        }
+    ]
+}

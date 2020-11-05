@@ -1,0 +1,26 @@
+.imbedded
+    style
+        include ../data/styles/common.css
+    .workflow
+        .inforow
+            .infocont
+                #timetarget
+                    .timetarget Ожидание....
+            .infocont
+                #infotarget
+                    .infotarget.tip Получение статистики...
+        .inforow
+            .infocont
+                .section-header Текущая загрузка
+                .section-body
+                    canvas.fullcanvas#loadgraph
+            .infocont
+                .section-header В цифрах
+                .section-body#loadcount
+        .inforow
+            .infocont
+                .section-header Последние действия
+                .section-body#lastactionscont
+            .infocont
+                .section-header Рассылка
+                .section-body#sendmessagetarget

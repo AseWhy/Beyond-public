@@ -1,0 +1,52 @@
+.logincont {
+    width: 350px;
+    padding: 0.2em;
+    margin: auto;
+    border: dashed 1px var(--background-color-2);
+    background-color: var(--background-color-1);
+}
+ 
+input.text {
+    width: calc(100% - 0.8em);
+    margin: 0px 0px .2em 0px;
+    padding: 0.4em;
+    background-color: var(--background-color-2);
+    border: none;
+    outline: none;
+    color: var(--header-text-color);
+}
+
+.error {
+    color: #c23030;
+    font-family: var(--header-font);
+    margin: .2em 0px;
+    padding: 0.4em;
+    border: 1px solid #c23030;
+    text-transform: uppercase;
+}
+
+.submit {
+    width: 100%;
+    line-height: 1.5em;
+    margin: .4em 0 0 0;
+    padding: .4em;
+    color: var(--header-text-color);
+    font-family: var(--header-font);
+    text-transform: uppercase;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background-color: var(--background-color-2);
+}
+
+.submit:hover {
+    background-color: var(--background-color-3);
+}
+ 
+.buffer{
+    height: calc(50% - 6em);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-image: url(/images/user_login.png);
+}

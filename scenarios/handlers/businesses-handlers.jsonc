@@ -1,0 +1,667 @@
+{
+    "name": "Бизнесы",
+    "id": "businesses-handlers",
+    "use_state": true,
+    "use_character": true,
+    "import": ["businesses.lib"],
+    "preset": {},
+    "condition": "false", // Можно только насильно перевести
+    "excecutors": [
+        {
+            "type": "excecutor",
+            "ident": "work-set-common", // Исполнитель, устраивает на работу
+            "condition": "true",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "data",
+                    "data": {
+                        "cur_work_ident": "work.id"
+                    },
+                    "condition": "true"
+                },
+                {
+                    "type": "excecutor",
+                    "condition": "work.work_type = 0", // Если это короткосрочная работа
+                    "entries": [
+                        { 
+                            "type": "scenario",
+                            "order": "apply",
+                            "target": "'work-clicker'",
+                            "condition": "true"
+                        }
+                    ]
+                },
+                {
+                    "type": "excecutor",
+                    "condition": "work.work_type = 1", // Если это долгосрочная работа
+                    "entries": [
+                        {   // Не соответсвует
+                            "type": "write",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Целевой персонаж не соответствует минимальным требованиям для выполнения этой работы. Попробуйте чуть позже, возможно небольшой отдых все исправит."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                }
+                            ],
+                            "condition": "work.condition = false | businesses.haveCost(work.cost, character) = false"
+                        },
+                        {   // Успешно
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Вы успешно устроились на работу {> work.display}. До завершения осталось {> numbers.to_ru_time_value(work.duration)}."
+                            ]
+                        },
+                        {   // Биндим на выход с работы
+                            "type": "bind",
+                            "ident": "excecutor-work-drop",
+                            "condition": "true",
+                            "jump": "work.duration",
+                            "entries": [
+                                {   // Зачисляю доход
+                                    "type": "character",
+                                    "field": "inventory",
+                                    "data": [
+                                        {
+                                            "type": "add_bans",
+                                            "data": "numbers.isNumber(work.income) ? work.income : (work.income != null ? (work.income.bans != null ? work.income.bans : 0) : 0)"
+                                        },
+                                        {
+                                            "type": "add_backpack",
+                                            "data": "numbers.isNumber(work.income) ? 0 : (work.income != null ? (work.income.backpack != null ? work.income.backpack : 0) : 0)"
+                                        }
+                                    ],
+                                    "condition": "true"
+                                },
+                                {   // Забираю плату выносливость
+                                    "type": "character",
+                                    "field": "endurance",
+                                    "data": "character.endurance.value - work.cost > 1 ? character.endurance.value - work.cost : 1",
+                                    "condition": "numbers.isNumber(work.cost)"
+                                },
+                                { 
+                                    "type": "excecute",
+                                    "condition": "numbers.isNumber(work.cost) = false",
+                                    "entries": [
+                                        {   // Забираю плату выносливость
+                                            "type": "character",
+                                            "field": "endurance",
+                                            "data": "character.endurance.value - work.cost.endurance > 1 ? character.endurance.value - work.cost.endurance : 1",
+                                            "condition": "numbers.isNumber(work.cost.endurance)"
+                                        },
+                                        {   // Забираю плату здоровье
+                                            "type": "character",
+                                            "field": "health",
+                                            "data": "character.health.value - work.cost.health > 1 ? character.health.value - work.cost.health : 1",
+                                            "condition": "numbers.isNumber(work.cost.health)"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "write",
+                                    "condition": "true",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы успешно закончили работу {> work.display}, вам было зачислено {> businesses.parseIncome(work.income)} как заработная плата."
+                                    ]
+                                },
+                                { 
+                                    "type": "scenario",
+                                    "order": "end",
+                                    "condition": "true"
+                                }
+                            ]
+                        },
+                        {   // Устанавливаем сценарий работы
+                            "type": "scenario",
+                            "order": "apply",
+                            "target": "'work-long-term'",
+                            "condition": "true"
+                        }
+                    ]
+                }
+            ]
+        },
+        {   // Исполнитель покупки предприятия
+            "type": "excecutor",
+            "ident": "business-buy-common",
+            "condition": "true",
+            "entries": [
+                {   // Уменьшаю баланс игрока
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "take_away_bans",
+                            "data": "buyable.cost"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {   // Добавляю в список его предприятий то которое он купил
+                    "type": "character",
+                    "field": "businesses",
+                    "data": "arrays.append(character.businesses, strings.join(arrays.slice(character.map.stack, 0, 4), null, '/') + '/' + buyable.id)",
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "condition": "true",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Предприятие {> buyable.display} успешно приобретено!"
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "К покупкам",
+                            "color": "GREEN",
+                            "payload": {"header": "город", "data": ["войти", "купить"]} 
+                        },
+                        {
+                            "title": "К предприятиям",
+                            "color": "GREEN",
+                            "payload": {"header": "город", "data": ["выбрать"]} 
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "excecutor",
+            "ident": "business-sold-common",
+            "condition": "true",
+            "entries": [
+                {   // Уменьшаю баланс игрока
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "add_bans",
+                            "data": "sold.cost * 0.5"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {   // Добавляю в список его предприятий то которое он купил
+                    "type": "character",
+                    "field": "businesses",
+                    "data": "arrays.remove(character.businesses, arrays.indexOf(strings.join(arrays.slice(character.map.stack, 0, 4), null, '/') + '/' + sold.id))",
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "condition": "true",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Предприятие {> sold.display} успешно продано!"
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "К покупкам",
+                            "color": "GREEN",
+                            "payload": {"header": "город", "data": ["войти", "купить"]} 
+                        },
+                        {
+                            "title": "К предприятиям",
+                            "color": "GREEN",
+                            "payload": {"header": "город", "data": ["выбрать"]} 
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "entries": [
+        {
+            "type": "excecute",
+            "condition": "child_info != null",
+            "entries": [
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Работа'",
+                    "prepare": "set works = businesses.getWorksForCharacter(character); set work = businesses.getWorkFullInfoBy('display', arrays.includes_command(works.works, arrays.slice(command.arg, 2)), character)",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "command.arg[2] = null",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Список доступных вакансий",
+                                "{> strings.join(works.works_display, '> &', '\n')}\n",
+                                "{> arrays.length(works.works_display) = 0 ? 'Кажется, в городе ' + character.map.sity.name + ' нет доступных для вас работ. ' : 'Для того, чтобы приступить к работе, введите ' + command.prefix + 'город выбрать работа (и вот тут название вакансии)'}"
+                            ],
+                            "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать работа', works.works, 'GREEN'), keyboard.createKeyboard('город войти', arrays.from('Назад'), 'GREEN', false))"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "work = null",
+                            "break_on": true,
+                            "message": [
+                                "Невозможно устроится на работу {> strings.join(arrays.slice(command.arg, 2), null, ' ')}: не существует в текущем контексте."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                }
+                            ]
+                        },
+                        {   // Прдажа
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Вы уверены что хотите устроится на работу {> work.display}?\n",
+                                "Тип: {> work.work_type = 0 ? 'Кликер' : 'Долгосрочная\n' + 'Продолжительность: ' + numbers.to_ru_time_value(work.duration)}",
+                                "Будет потрачено: {> businesses.parseCost(work.cost)}",
+                                "Город: {> character.map.sity.name}",
+                                "Название: {> work.display}",
+                                "Зарплата: {> businesses.parseIncome(work.income)}\n",
+                                "{> work.description != null ? work.description + '\n\n' : ''}",
+                                "Для подверждения введите {> command.prefix}продолжить"
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Продолжить",
+                                    "color": "RED",
+                                    "payload": {"header": "продолжить", "data": []}
+                                },
+                                {
+                                    "title": "Назад",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["выбрать", "вакансии"]}
+                                }
+                            ]
+                        },
+                        {
+                            "type": "confirmation-request",
+                            "condition": "true",
+                            "procedure": "'work-set-common'"
+                        }
+                    ]
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Вакансии'",
+                    "prepare": "set works = businesses.getWorksForCharacter(character);",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Список доступных вакансий",
+                                "{> strings.join(works.works_display, '> &', '\n')}\n",
+                                "{> arrays.length(works.works_display) = 0 ? 'Кажется, в городе ' + character.map.sity.name + ' нет доступных для вас работ. ' : 'Для того, чтобы приступить к работе, введите ' + command.prefix + 'город выбрать работа (и вот тут название вакансии)'}"
+                            ],
+                            "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать работа', works.works, 'GREEN'), keyboard.createKeyboard('город войти', arrays.from('Назад'), 'GREEN', false))"
+                        }
+                    ]
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Список'",
+                    "prepare": "set owned = businesses.getOwnedBusinessesForCharacter(character);",
+                    "break_on": true,
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "arrays.length(owned.businesses) > 0",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Список ваших предприятий",
+                                "{> strings.join(owned.businesses, '> &', '\n')}\n",
+                                "Общий, суточный, доход которых, в городе {> character.map.sity.name} составляет {> numbers.to_ru_format(owned.total)} (банов)"
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Кажется, в текущем городе, у вас нет приобретенных предприятий."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Ладно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Продать'",
+                    "prepare": "set available = businesses.getBuisnesesForCharacter(character);set owned = businesses.getOwnedBusinessesForCharacter(character);",
+                    "break_on": true,
+                    "entries": [
+                        {
+                            "type": "excecute",
+                            "condition": "command.arg[2] = null",
+                            "entries": [
+                                {
+                                    "type": "write",
+                                    "condition": "arrays.length(available.businesses_display) > 0",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Список ваших предприятий",
+                                        "{> strings.join(owned.businesses, '> &', '\n')}\n",
+                                        "Общий, суточный, доход которых, в городе {> character.map.sity.name} составляет {> numbers.to_ru_format(owned.total)} (банов)",
+                                        "Для продажи введите {> command.prefix}город выбрать продать (и вот тут название предприятия)"
+                                    ],
+                                    "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать продать', available.businesses_owned, 'GREEN'), keyboard.createKeyboard('город войти', arrays.from('Назад'), 'GREEN', false))"
+                                },
+                                {
+                                    "type": "write",
+                                    "condition": "true",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Кажется, городе {> character.map.sity.name}, у вас нет предприятий на продажу."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Понятно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["войти"]}
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "arrays.includes_command(available.businesses_owned, arrays.slice(command.arg, 2)) = null",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Невозможно приобрести продать предприятие: не принадлежит целевому персонажу."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["выбрать", "продать"]} 
+                                }
+                            ]
+                        },
+                        {
+                            "type": "excecute",
+                            "condition": "command.arg[2] != null",
+                            "prepare": "set sold = businesses.getBusinessFullInfoBy('display', arrays.includes_command(available.businesses_owned, arrays.slice(command.arg, 2)), character)",
+                            "entries": [
+                                {
+                                    "type": "write",
+                                    "condition": "sold = null",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Невозможно продать предприятие {> strings.join(arrays.slice(command.arg, 2), null, ' ')}: не существует в текущем контексте."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Понятно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["выбрать", "купить"]}
+                                        }
+                                    ]
+                                },
+                                {   // Прдажа
+                                    "type": "write",
+                                    "condition": "true",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы уверены что хотите продать предприятие {> sold.display}?",
+                                        "При продаже вы получите только 50%, от изначальной стоимости\n",
+                                        "Тип: предприятие",
+                                        "По цене: {> numbers.to_ru_format(sold.cost * 0.5)} (банов)",
+                                        "Город: {> character.map.sity.name}",
+                                        "Название: {> sold.display}",
+                                        "Суточный доход: {> sold.income}\n",
+                                        "{> sold.description != null ? sold.description + '\n\n' : ''}",
+                                        "Для подверждения введите {> command.prefix}продолжить"
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Продолжить",
+                                            "color": "RED",
+                                            "payload": {"header": "продолжить", "data": []}
+                                        },
+                                        {
+                                            "title": "Продолжить",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["выбрать", "купить"]}
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "confirmation-request",
+                                    "condition": "true",
+                                    "procedure": "'business-sold-common'"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Купить'",
+                    "prepare": "set available = businesses.getBuisnesesForCharacter(character);",
+                    "break_on": true,
+                    "entries": [
+                        {
+                            "type": "excecute",
+                            "condition": "command.arg[2] = null",
+                            "entries": [
+                                {
+                                    "type": "write",
+                                    "condition": "arrays.length(available.businesses_display) > 0",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы хотите купить себе предприятие. Выберите одно из списка",
+                                        "{> strings.join(available.businesses_display, '> &', '\n')}\n",
+                                        "{> arrays.length(available.businesses_display) = arrays.length(available.businesses_owned) ? 'Кажется вы скупили все предприятия в городе ' + character.map.sity.name + ', тут даже я в шоке. Поздравляем!' : 'Для покупки введите !город выбрать купить (название предприятия, как в списке)'}"
+                                    ],
+                                    "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать купить', available.businesses, 'GREEN'), keyboard.createKeyboard('город войти', arrays.from('Назад'), 'GREEN', false))"
+                                },
+                                {
+                                    "type": "write",
+                                    "condition": "true",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Кажется, в этом городе, не осталось предприятий, которые вы могли бы приобрести."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Ладно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["войти"]} 
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "arrays.includes_command(available.businesses_owned, arrays.slice(command.arg, 2)) != null",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Невозможно приобрести предприятие: уже принадлежит целевому персонажу."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["выбрать", "купить"]} 
+                                }
+                            ]
+                        },
+                        {
+                            "type": "excecute",
+                            "condition": "command.arg[2] != null",
+                            "prepare": "set buyable = businesses.getBusinessFullInfoBy('display', arrays.includes_command(available.businesses, arrays.slice(command.arg, 2)), character)",
+                            "entries": [
+                                {
+                                    "type": "write",
+                                    "condition": "buyable = null",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Невозможно приобрести предприятие {> strings.join(arrays.slice(command.arg, 2), null, ' ')}: не существует в текущем контексте."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Понятно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["выбрать", "купить"]} 
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "write",
+                                    "condition": "character.inventory.bans < buyable.cost",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Невозможно приобрести предприятие {> buyable.name}: недостаточно банов."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Понятно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["выбрать", "купить"]} 
+                                        }
+                                    ]
+                                },
+                                {   // Покупка
+                                    "type": "write",
+                                    "condition": "true",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы уверены что хотите приобрести предприятие {> buyable.display}?",
+                                        "Тип: предприятие",
+                                        "Цена: {> numbers.to_ru_format(buyable.cost)} (банов)",
+                                        "Город: {> character.map.sity.name}",
+                                        "Название: {> buyable.display}",
+                                        "Суточный доход: {> buyable.income}\n",
+                                        "{> buyable.description != null ? buyable.description + '\n\n' : ''}",
+                                        "Для подверждения введите {> command.prefix}продолжить"
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Продолжить",
+                                            "color": "RED",
+                                            "payload": {"header": "продолжить", "data": []}
+                                        },
+                                        {
+                                            "title": "Продолжить",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["выбрать", "купить"]}
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "confirmation-request",
+                                    "condition": "true",
+                                    "procedure": "'business-buy-common'"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Собрать прибыль'",
+                    "prepare": "character.data.businesses_bank = (character.data.businesses_bank != null ? character.data.businesses_bank : arrays.from()); set ident = character.map.sity.id;",
+                    "break_on": true,
+                    "entries": [
+                        {
+                            "type": "excecute",
+                            "condition": "objects.get(character.data.businesses_bank, ident) > 0",
+                            "break_on": true,
+                            "entries": [
+                                {   // Уменьшаю баланс игрока
+                                    "type": "character",
+                                    "field": "inventory",
+                                    "data": [
+                                        {
+                                            "type": "add_bans",
+                                            "data": "objects.get(character.data.businesses_bank, ident)"
+                                        }
+                                    ],
+                                    "condition": "true"
+                                },
+                                {   // Покупка
+                                    "type": "write",
+                                    "condition": "true",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы успешно собрали прибыль, в городе {> character.map.sity.name}, которая составила {> numbers.to_ru_format(objects.get(character.data.businesses_bank, ident))} банов."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Хорошо",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["войти"]}
+                                        }
+                                    ]
+                                },
+                                {   // Уменьшаю баланс игрока
+                                    "type": "character",
+                                    "field": "data",
+                                    "data": {
+                                        "businesses_bank": "objects.set(character.data.businesses_bank, ident, 0)"
+                                    },
+                                    "condition": "true"
+                                }
+                            ]
+                        },
+                        {   // Покупка
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Пока что, в городе {> character.map.sity.name} ваши бизнесы не принесли ни одного бана, имейте терпение."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

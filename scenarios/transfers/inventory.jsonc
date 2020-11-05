@@ -1,0 +1,137 @@
+{
+    "name": "Инвентарь",
+    "id": "inventory-transfer",
+    "use_state": false,
+    "use_character": true,
+    "import": ["inventory.lib"],
+    "preset": {},
+    "condition": "false", // Невыполняемый напрямую сценарий
+    "excecutors": [
+        {
+            "type": "excecutor",
+            "ident": "player-inventory-pay-bans",
+            "condition": "true",
+            "entries": [
+                {   // Уменьшаю баланс игрока на сумму перевода
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "take_away_bans",
+                            "data": "bans"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {   // Просто напяму пишем, и вообще похуй ибо делаем на коленке пока что...
+                    // TODO сделать функцию обновления стороннего персонажа
+                    "type": "query",
+                    "query": "{> \"UPDATE `characters` SET `inventory` = JSON_SET(`inventory`, '$.bans', `inventory` -> '$.bans' + \" + bans + \") WHERE id LIKE '\" + target_character.id + \"'\"}",
+                    "condition": "true"
+                },
+                {   // Уведомляю об успешной транзакции
+                    "type": "write",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы успешно перевели сумму: {> numbers.to_ru_format(bans)} (банов), персонажу {> target_character.name + '#' + target_character.id}.\n"
+                    ],
+                    "condition": "true"
+                }
+            ]
+        }
+    ],
+    "entries": [
+        { // Карта мира
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Помощь по использованию инвентаря",
+                "!инвентарь - выводит инвентарь персонажа",
+                "!инвентарь помощь - выводит помощь по инвентарю",
+                "!инвентарь перевести (id получателя) (сумма) для перевода банов другому персонажу"
+            ],
+            "condition": "command.arg[0] = 'помощь'"
+        },
+        {
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Инвентарь персонажа",
+                "Кошелек: [{> numbers.to_ru_format(character.inventory.bans)}] Банов",
+                "Рюкзак: [{> numbers.to_ru_format(character.inventory.backpack[0]) + '/' + numbers.to_ru_format(character.inventory.backpack[1])}] Стройматериалов",
+                "Одежда: {> character.inventory.clothes.name}",
+                "Оружие: {> character.inventory.weapon.name}",
+                "Транспорт: {> character.inventory.transport.name}",
+                "Снаряжение",
+                "{> strings.join(character.inventory.equipment, '> Слот #: &', '\n')}",
+                "Сумки",
+                "{> strings.join(character.inventory.bags, '> Слот #: &', '\n')}"
+            ],
+            "condition": "command.arg[0] = null"
+        },
+        {   // Перевод банов
+            "type": "excecute",
+            "break_on": true,
+            "condition": "command.arg[0] = 'перевести' & command.arg[1] != null & command.arg[2] != null",
+            "prepare": "set target = numbers.parseInt(command.arg[1]);set bans = numbers.parseInt(command.arg[2]);",
+            "entries": [
+                {   // Банов нет
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "На данные момент у вас нет такой суммы: {> numbers.to_ru_format(bans)} (банов)."
+                    ],
+                    "condition": "bans > character.inventory.bans"
+                },
+                {   // Выполняем запрос к бд, ставлю статус регистрации на true
+                    "type": "query",
+                    "query": "{> \"SELECT * FROM `characters` WHERE id LIKE '\" + target + \"'\"}",
+                    "as": "target",
+                    "condition": "true"
+                },
+                {   // Цели не сущетвует
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Персонажа с идентификатором {> command.arg[1]} не сущевует. Пожалуйста, првоерьте правильность написания идентификатора целевого персонажа."
+                    ],
+                    "condition": "target[0] = null"
+                },
+                {   // Запрашиваю подверждение
+                    "type": "write",
+                    "prepare": "set target_character = target[0];",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы уверены, что хотите перевести сумму: {> numbers.to_ru_format(bans)} (банов), персонажу {> target_character.name + '#' + target_character.id}?\n",
+                        "Для подтверждения введите {> command.prefix}продолжить. Для отмены введите любую другую команду."
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Продолжить",
+                            "color": "GREEN",
+                            "payload": {"header": "продолжить", "data": []}
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {
+                    "type": "confirmation-request",
+                    "condition": "true",
+                    "procedure": "'player-inventory-pay-bans'"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "message": [
+                "[СИСТЕМА]\n",
+                "Неизвестная команда"
+            ],
+            "condition": "true"
+        }
+    ]
+}

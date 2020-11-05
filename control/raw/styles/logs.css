@@ -1,0 +1,71 @@
+.workflow {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-areas: '. .';
+    grid-template-columns: 15% 85%;
+    gap: 0.25em;
+}
+
+.section {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+}
+
+.log-selection-unit {
+    padding: 0.5em;
+    cursor: pointer;
+}
+
+.log-selection-unit:hover, .log-selection-unit.selected {
+    background-color: var(--background-color-2);
+}
+
+.log-selection-unit.selected::after {
+    content: '»';
+    float: right;
+}
+
+.date {
+    padding: 0.25em;
+}
+
+.date:hover {
+    background: var(--background-color-2);
+}
+
+.log-row {
+    margin: 0 0.25em;
+    line-height: 2em;
+}
+
+.log-row > * {
+    margin: 0 0.25em;
+}
+
+.log-row.log > * {
+    color: skyblue
+}
+
+.log-row.warn > * {
+    color: wheat
+}
+
+.log-row.error > * {
+    color: var(--danger-text-color)
+}
+
+.logs-cont-rendere {
+    height: calc(100% - 0.5em);
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    overflow: hidden;
+    white-space: pre;
+}
+
+b.loading_to_do {
+    width: 100%;
+    display: block;
+    text-align: center;
+}

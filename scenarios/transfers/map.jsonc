@@ -1,0 +1,197 @@
+{
+    "name": "Карта",
+    "id": "map-transfer",
+    "use_state": false,
+    "use_character": true,
+    "import": ["map.lib"],
+    "preset": {},
+    "condition": "false", // Невыполняемый напрямую сценарий
+    "entries": [
+        { // Карта мира
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Помощь по использованию карты",
+                "!карта идти - для вывода доступных для перемещения провинций",
+                "!карта идти [id] - начнет перемещение в провинцию id",
+                "!карта региона - возвращает карту региона",
+                "!карта мира - возвращает карту мира",
+                "!карта помощь - помощь по командам"
+            ],
+            "condition": "command.arg[0] = null | command.arg[0] = 'помощь'"
+        },
+        { // Карта региона
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Данные по региону {> character.map.region.name}:",
+                "Население: {> numbers.to_ru_format(character.map.region.population)}",
+                "Провинций: {> numbers.to_ru_format(character.map.region.provc)}",
+                "{> character.map.region.description != null ? '\nОписание региона: ' + character.map.region.description : '' }",
+                "{> character.data.moving = true ? '\nПеремещние персонажа, до прибытия в целевую провинцию осталось: ' + numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now()) : ''}"
+            ],
+            "attachments": [
+                {
+                    "type": "sql-attachment",
+                    "basename": "map",
+                    "query": "{> 'SELECT `gfx` FROM `regions` WHERE `id` LIKE ' + character.map.region.id}"
+                }
+            ],
+            "condition": "command.arg[0] = 'региона' | command.arg[0] = 'рег' | command.arg[0] = 'региональная'"
+        },
+        { // Карта мира
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Карта мира\n",
+                "(Скоро будет)"
+            ],
+            "condition": "command.arg[0] = 'мира' | command.arg[0] = 'мираовая' | command.arg[0] = 'мирская'"
+        },
+        { // Перемещение
+            "type": "excecute",
+            "condition": "command.arg[0] = 'идти' | command.arg[0] = 'двигаться' | command.arg[0] = 'перемещаться'",
+            "entries": [
+                { // Попытка использования дальнейших действий в городе.
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "На данный момент вы находитесь в городе, пожайлуста выйдите из города, для возможности перемещения по региону."
+                    ],
+                    "condition": "character.map.sity != null"
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Перемещние персонажа, до прибытия в целевую провинцию осталось: {> numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now())}"
+                    ],
+                    "condition": "character.data.moving = true"
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Доступные провинции для перемещения:",
+                        "{set paths = map.getProvincePaths(character.map); > strings.join(paths.fullnames, null, '\n')}\n",
+                        "Для перемещения напишите !карта идти (и вот тут номер провинции)\n",
+                        "Например: !карта идти 2104 - персонаж начнет перемещение в провинцию с номером 2104. {",
+                        "> character.map.province.sity != null ? ('\n\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.sity.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.') : ''; }"
+                    ],
+                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'GREEN'), character.map.province.sity != null ? keyboard.createKeyboard('город войти', arrays.from('Войти в город'), 'GREEN', false) : arrays.from())",
+                    "attachments": [
+                        {
+                            "type": "sql-attachment",
+                            "basename": "map",
+                            "query": "{> 'SELECT `gfx` FROM `provinces` WHERE `id` LIKE ' + character.map.province.id}"
+                        }
+                    ],
+                    "condition": "command.arg[1] = null"
+                },
+                {
+                    "type": "excecute",
+                    "condition": "command.arg[1] != character.map.province.id & map.isBoindaryProvince(character.map, command.arg[1])", // Выбранная провинция граничит с провинцией персонажа
+                    "entries": [
+                        {
+                            "type": "character",
+                            "field": "data",
+                            "data": { 
+                                "moving": "true",
+                                "moving_from": "character.map.province.id",
+                                "moving_to": "command.arg[1]",
+                                "moving_start": "date.now()",
+                                "moving_arrival_after": "map.getMoveArrivalTime(character.map.province.id, command.arg[1])"
+                            },
+                            "condition": "true"
+                        },
+                        {
+                            "type": "bind",
+                            "ident": "map-go-common",
+                            "jump": "character.data.moving_arrival_after",
+                            "entries": [
+                                {   // Устанавливаем поле map, и записываем туда текущие координаты
+                                    "type": "character",
+                                    "field": "map",
+                                    "data": "map.getMapCharacterPathBy('province', character.data.moving_to)",
+                                    "condition": "true"
+                                },
+                                {   // Выводим сообщение о том что перемещение завершено.
+                                    "type": "write",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Перемещние завершено.",
+                                        "Ваша текущая провинция: {> character.data.moving_to}",
+                                        "Путь занял у вас: {",
+                                            "> numbers.to_ru_time_value(character.data.moving_arrival_after) + '\n';",
+                                            "> character.map.province.sity != null ? ('\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.sity.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.\n\n') : '';",
+                                        "}",
+                                        "Для дальнейшего перемещения введите !карта идти (и вот тут номер провинции)\n",
+                                        "Доступные провинции для перемещения:",
+                                        "{set paths = map.getProvincePaths(character.map); > strings.join(paths.fullnames, null, '\n')}\n"
+                                    ],
+                                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'GREEN'), character.map.province.sity != null ? keyboard.createKeyboard('город войти', arrays.from('Войти в город'), 'GREEN', false) : arrays.from())",
+                                    "attachments": [
+                                        {
+                                            "type": "sql-attachment",
+                                            "basename": "map",
+                                            "query": "{> 'SELECT `gfx` FROM `provinces` WHERE `id` LIKE ' + character.map.province.id}"
+                                        }
+                                    ],
+                                    "condition": "true"
+                                },
+                                {   // Устанавливаем в данных персонажа поле перемещение на false
+                                    "type": "character",
+                                    "break_on": true,
+                                    "field": "data",
+                                    "data": {
+                                        "moving": "false"
+                                    },
+                                    "condition": "true"
+                                }
+                            ],
+                            "condition": "true"
+                        },
+                        {   // Если персонаж ещё в процессе перемещения
+                            "type": "write",
+                            "break_on": true,
+                            "message": "Перемещение в провинцию {> command.arg[1]}, прибытие через: {> numbers.to_ru_time_value(character.data.moving_arrival_after)}.",
+                            "condition": "true"
+                        }
+                    ]
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "невозможно переместиться в провинцию {> command.arg[1]}, является исходной провинцией."
+                    ],
+                    "condition": "command.arg[1] = character.map.province.id"
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "невозможно переместиться в провинцию {> command.arg[1]}, не граничит с исходной провинцией."
+                    ],
+                    "condition": "map.isBoindaryProvince(character.map, command.arg[1]) = false"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "message": [
+                "[СИСТЕМА]\n",
+                "Неизвестная команда"
+            ],
+            "condition": "true"
+        }
+    ]
+}

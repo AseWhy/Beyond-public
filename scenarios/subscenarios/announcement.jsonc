@@ -1,0 +1,207 @@
+{
+    "name": "Объявление",
+    "id": "announcement",
+    "use_state": true,
+    "use_character": true,
+    "import": ["map.lib"],
+    "preset": {
+        "announcement": null
+    },
+    "condition": "false", // Можно только насильно перевести
+    "entries": [
+        {   // Завершаем сценарий
+            "type": "excecute",
+            "condition": "command.header = 'выйти'",
+            "prepare": "set options = map.getCurrentDistrictOptions(character);",
+            "entries": [
+                {
+                    "type": "write",
+                    "condition": "command.arg[1] = null",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "{",
+                            "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nКажется это тупик и идти дальше некуда... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
+                        "}"
+                    ],
+                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                },
+                { // Завершаем сценарий
+                    "type": "scenario",
+                    "order": "end",
+                    "condition": "true"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "break_on": true,
+            "state": 1,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Введите текст объявления, которое вы хотите закрепить в формате {> command.prefix}объявление (и тут текст вашего объявление, длинна котрого не должна привышать 255 символов или быть короче 10 символов.)\n",
+                "Если вы ошиблись в выборе опции, используйте {> command.prefix}выйти, для выхода из меню ввода сообщения для доски объявлений"
+            ],
+            "keyboard": [
+                {
+                    "title": "Выйти",
+                    "color": "GREEN",
+                    "payload": {"header": "выйти", "data": []}
+                }
+            ],
+            "condition": "state.state = 0"
+        },
+        {   // Перемещение
+            "type": "excecute",
+            "condition": "state.state = 1",
+            "break_on": true,
+            "prepare": "set message = strings.trim(strings.join(command.arg, null, ' '))",
+            "entries": [
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "state": 0,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Ошибка публикации сообщения: сообщение длиннее 255 символов или короче 10 символов."
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Выйти",
+                            "color": "GREEN",
+                            "payload": {"header": "выйти", "data": []}
+                        }
+                    ],
+                    "condition": "strings.length(message) > 255 | strings.length(message) < 10"
+                },
+                {
+                    "type": "save",
+                    "state": 0,
+                    "entries": { 
+                        "announcement": "message"
+                    },
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "state": 1,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы уверены что хотите вывесеть объявление со следующим содержанием:\n",
+                        "{> message}\n",
+                        "Используйте: {> command.prefix}да или {> command.prefix}нет"
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Да",
+                            "color": "GREEN",
+                            "payload": {"header": "да", "data": []}
+                        },
+                        {
+                            "title": "Нет",
+                            "color": "RED",
+                            "payload": {"header": "нет", "data": []}
+                        },
+                        {
+                            "title": "Выйти",
+                            "color": "GREEN",
+                            "payload": {"header": "выйти", "data": []}
+                        }
+                    ],
+                    "condition": "true"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "break_on": true,
+            "state": -1,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Введите текст объявления, которое вы хотите закрепить в формате {> command.prefix}объявление (и тут текст вашего объявление, длинна котрого не должна привышать 255 символов или быть короче 10 символов.)\n",
+                "Если вы ошиблись в выборе опции, используйте {> command.prefix}выйти, для выхода из меню ввода сообщения для доски объявлений"
+            ],
+            "keyboard": [
+                {
+                    "title": "Выйти",
+                    "color": "GREEN",
+                    "payload": {"header": "выйти", "data": []}
+                }
+            ],
+            "condition": "state.state = 2 & command.header = 'нет'"
+        },
+        { // Перемещение
+            "type": "excecute",
+            "condition": "state.state = 2 & command.header = 'да'",
+            "prepare": "set options = map.getCurrentDistrictOptions(character); set target = strings.unregister(strings.join(arrays.slice(command.arg, 1), null, ' '));set key = strings.getUniqueIdent(); set post = objects.create();post = objects.set(post, key, state.data.announcement)",
+            "break_on": true,
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "data",
+                    "data": {
+                        "last_announcement_post": "date.now()"
+                    },
+                    "condition": "true"
+                },
+                {   // Записываем объявление
+                    "type": "game-data",
+                    "order": "get",
+                    "field": "announcements",
+                    "condition": "true"
+                },
+                {   // Записываем объявление
+                    "type": "game-data",
+                    "order": "set",
+                    "field": "announcements",
+                    "data": {
+                        "contents": "game_data.announcements != null & game_data.announcements.contents != null ? objects.assign(game_data.announcements.contents, post) : post"
+                    },
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "condition": "true",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Действие успешно завершено!\n",
+                        "{",
+                            "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nКажется это тупик и идти дальше некуда... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
+                        "}"
+                    ],
+                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                },
+                { // Перемещение
+                    "type": "bind",
+                    "ident": "excecutor-remove-announcement",
+                    "condition": "true",
+                    "jump": "604800000", // 1 неделя
+                    "entries": [
+                        {   // Записываем объявление
+                            "type": "game-data",
+                            "order": "set",
+                            "field": "announcements",
+                            "data": {
+                                "contents": "game_data.announcements != null & game_data.announcements.contents != null ? objects.remove(game_data.announcements.contents, key) : null"
+                            },
+                            "condition": "true"
+                        }
+                    ]
+                },
+                { // Завершаем сценарий
+                    "type": "scenario",
+                    "order": "end",
+                    "condition": "true"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "message": [
+                "[СИСТЕМА]\n",
+                "Неизвестная команда. Для выхода из этого сценария введите {> command.prefix}выйти"
+            ],
+            "condition": "true"
+        }
+    ]
+}

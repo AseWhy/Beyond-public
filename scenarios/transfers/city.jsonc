@@ -1,0 +1,453 @@
+{
+    "name": "Город",
+    "id": "sity-transfer",
+    "use_state": false,
+    "use_character": true,
+    "import": ["map.lib"],
+    "preset": {},
+    "condition": "false", // Невыполняемый напрямую сценарий
+    "excecutors": [
+        {
+            "type": "excecutor",
+            "ident": "map-enter-to-area-drop-entrance",
+            "condition": "true",
+            "entries": [
+                {   // Уменьшаю баланс игрока
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "take_away_bans",
+                            "data": "child_info.entrance"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {
+                    "type": "call",
+                    "condition": "true",
+                    "procedure": "'map-enter-to-area'"
+                }
+            ]
+        },
+        {
+            "type": "excecutor",
+            "ident": "map-handle-repeated-action",
+            "condition": "true",
+            "entries": [
+                {
+                    "type": "call",
+                    "condition": "true",
+                    "procedure": "'map-enter-to-area'"
+                }
+            ]
+        },
+        {
+            "type": "excecutor",
+            "ident": "map-enter-to-area",
+            "condition": "true",
+            "entries": [
+                {
+                    "type": "character",
+                    "field": "map",
+                    "data": "map.appendCharacterPath(character.map, child_info.id)",
+                    "condition": "true"
+                },
+                {
+                    "type": "excecute",
+                    "condition": "true",
+                    "prepare": "set info = map.getCurrentAreaInfo(character); options = map.getCurrentDistrictOptions(character);",
+                    "break_on": true,
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "info.subtype = 2",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "> 'Вы успешно вошли в здание ' + info.name",
+                                    "> info.description != null ? '\n\n' + info.description : '\n\nНо кажется тут делать нечего... Для выхода из здания используйте ' + command.prefix + 'город выйти'",
+                                "}"
+                            ],
+                            "keyboard": "keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')" // TODO
+                        },
+                        {
+                            "type": "write",
+                            "condition": "info.subtype = 1 | info.subtype = 3",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "> info.description != null ? '\n\n' + info.description : '\n\nКажется кто-то забыл добавить описание. Не переживайте, этого негодяя уже бьют палками. Для выхода используйте ' + command.prefix + 'город выйти'",
+                                "}"
+                            ],
+                            "keyboard": "keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')" // TODO
+                        },
+                        {
+                            "type": "write",
+                            "condition": "info.subtype = 0",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "> 'Вы успешно вошли в область ' + info.name;",
+                                    "> info.description != null ? '\n\n' + info.description : '';",
+                                    "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие действия в области ' + ':\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора действия введите: ' + command.prefix + 'город выбрать (тут название действия, как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nНо кажется это тупик... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
+                                "}"
+                            ],
+                            "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "entries": [
+        {   // Помощь
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Помощь по командам города",
+                "!город выбрать [название] - переходит в следующую область города.",
+                "!город выйти - возвращается в предыдущую область города.",
+                "!город купить [название] - попытка приобрести собственность в городе\n",
+                "Заметка: перемещение по городу происходит поэтапно, это значит что выйти и войти в город сразу нельзя, для того чтобы выйти из города, вам необходимо будет пройти все те-же районы, что вы прошли для того чтобы попасть в текущюю область."
+            ],
+            "condition": "command.arg[0] = null | command.arg[0] = 'помощь'"
+        },
+        {   // Вход в город
+            "type": "excecute",
+            "break_on": true,
+            "condition": "command.arg[0] = 'войти' | command.arg[0] = 'вход' | command.arg[0] = 'зайти' | command.arg[0] = 'выбрать' | command.arg[0] = 'вперед'",
+            "entries": [
+                { // Вход в город, если города нет в позиции персонажа
+                    "type": "excecute",
+                    "condition": "character.map.sity = null",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "В вашей текущей провинции нет города для перемещения.\n",
+                                "Для просмотра информации по региону введите: {> command.prefix}карта региона\n",
+                
+                                "На данный момент вам даступные следующие провинции для перемещения:",
+                                "{set paths = map.getProvincePaths(character.map); > strings.join(paths.fullnames, null, '\n')}\n",
+                
+                                "Для перемещения напишите {> command.prefix}карта идти (и вот тут номер провинции)",
+                                "Например: {> command.prefix}карта идти 2104 - персонаж начнет перемещение в провинцию с номером 2104."
+                            ],
+                            "keyboard": "keyboard.createKeyboard('карта идти', paths.names, 'GREEN')",
+                            "attachments": [
+                                {
+                                    "type": "sql-attachment",
+                                    "basename": "map",
+                                    "query": "{> 'SELECT `gfx` FROM `provinces` WHERE `id` LIKE ' + character.map.province.id}"
+                                }
+                            ],
+                            "condition": "character.map.province.sity = null"
+                        },
+                        {   // Устанавливаем поле map, и записываем туда текущие координаты
+                            "type": "character",
+                            "field": "map",
+                            "data": "map.getMapCharacterPathBy('sity', character.map.province.sity.id)",
+                            "condition": "true"
+                        },
+                        {
+                            "type": "write",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Вы вошли в город!",
+                                "{",
+                                    "set options = map.getCurrentDistrictOptions(character);",
+                                    "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие районы в городе ' + options.source + ':\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора района введите: ' + command.prefix + 'город выбрать (тут название района как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + '\n\nДля выхода из города используйте ' + command.prefix + 'город выйти' : '\n\nНо кажется какой-то пустой город... Для выхода из города используйте ' + command.prefix + 'город выйти'",
+                                "}"
+                            ],
+                            "keyboard": "options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) :",
+                            "condition": "true"
+                        }
+                    ]
+                },
+                {   // Вход в область, если это возможно
+                    "type": "excecute",
+                    "condition": "character.map.sity != null",
+                    "prepare": "set options = map.getCurrentDistrictOptions(character); set target = arrays.slice(command.arg, 1); set includes = arrays.includes_command(options.includes, target); set buys = arrays.includes_command(options.buy, target);",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "command.arg[1] = null",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nКажется это тупик и идти дальше некуда... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
+                                "}"
+                            ],
+                            "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                        },
+                        {
+                            "type": "excecute",
+                            "condition": "includes != null | buys != null",
+                            "prepare": "set child_info = map.getChildAreaInfo(character, map.getIdentByName('district', includes != null ? includes : buys, character))",
+                            "break_on": true,
+                            "entries": [
+                                {   // Перебрасываем на другой сценарий
+                                    "type": "scenario",
+                                    "order": "drop",
+                                    "target": "child_info.scenario",
+                                    "condition": "child_info.type = 1 & child_info.scenario != null"
+                                },
+                                {   // Плата за вход
+                                    "type": "excecute",
+                                    "condition": "child_info.type = 2 & child_info.entrance != null",
+                                    "break_on": true,
+                                    "entries": [
+                                        {
+                                            "type": "write",
+                                            "condition": "character.inventory.bans < child_info.entrance",
+                                            "break_on": true,
+                                            "message": [
+                                                "[СИСТЕМА]\n",
+                                                "Для использования этой собственности, вам необходимо оплатить свое проживание.\n",
+                                                "Будет вычтено: {> numbers.to_ru_format(child_info.entrance)} (банов) единоразово",
+                                                "Город: {> character.map.sity.name}",
+                                                "Наименование: {> child_info.name}\n",
+                                                "{> child_info.description != null ? child_info.description + '\n\n' : ''}",
+                                                "Ваш баланс на данный момент составляет {> numbers.to_ru_format(character.inventory.bans)} (банов) - этого недостаточно для того, чтобы внести плату в {> numbers.to_ru_format(child_info.entrance)} (банов)."
+                                            ],
+                                            "keyboard": "keyboard.createKeyboard('город вперед', arrays.from('Назад'), 'GREEN', false)"
+                                        },
+                                        {
+                                            "type": "write",
+                                            "condition": "character.inventory.bans >= child_info.entrance",
+                                            "message": [
+                                                "[СИСТЕМА]\n",
+                                                "Для использования этой собственности, вам необходимо оплатить свое проживание.\n",
+                                                "Будет вычтено: {> numbers.to_ru_format(child_info.entrance)} (банов) единоразово",
+                                                "Город: {> character.map.sity.name}",
+                                                "Наименование: {> child_info.name}\n",
+                                                "{> child_info.description != null ? child_info.description + '\n\n' : ''}",
+                                                "Для подтверждения введите {> command.prefix}продолжить"
+                                            ],
+                                            "keyboard": "arrays.concat(keyboard.createKeyboard('', arrays.from('Продолжить'), 'RED'), keyboard.createKeyboard('город вперед', arrays.from('Назад'), 'GREEN', false))"
+                                        },
+                                        {
+                                            "type": "confirmation-request",
+                                            "condition": "true",
+                                            "procedure": "'map-enter-to-area-drop-entrance'"
+                                        }
+                                    ]
+                                },
+                                {   // Покупка
+                                    "type": "write",
+                                    "condition": "child_info.type = 2 & child_info.cost != null & (arrays.includes(character.own, strings.join(character.map.stack, null, '/') + '/' + child_info.id) = false)",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Для использования этой собственности, вам необходимо её приобрести.\n",
+                                        "Тип: городская собственность",
+                                        "Цена: {> numbers.to_ru_format(child_info.cost)} (банов)",
+                                        "Город: {> character.map.sity.name}",
+                                        "Название: {> child_info.name}\n",
+                                        "{> child_info.description != null ? child_info.description + '\n\n' : ''}",
+                                        "Для приобретения введите {> command.prefix}город купить {> child_info.name}"
+                                    ],
+                                    "keyboard": "arrays.concat(keyboard.createKeyboard('город купить ' + child_info.name, arrays.from('Купить'), 'RED', false), keyboard.createKeyboard('город вперед', arrays.from('Назад'), 'GREEN', false))"
+                                },
+                                {   // Повторяемое дейтствие
+                                    "type": "excecute",
+                                    "condition": "child_info.type = 3",
+                                    "break_on": true,
+                                    "entries": [
+                                        {
+                                            "type": "write",
+                                            "condition": "true",
+                                            "message": [
+                                                "[СИСТЕМА]\n",
+                                                "Вы хотите выполнить действие - {> child_info.name}?\n",
+                                                "Город: {> character.map.sity.name}\n",
+                                                "{> child_info.description != null ? child_info.description + '\n' : ''}",
+                                                "Для подтверждения введите {> command.prefix}продолжить"
+                                            ],
+                                            "keyboard": "arrays.concat(keyboard.createKeyboard('', arrays.from('Продолжить'), 'RED'), keyboard.createKeyboard('город вперед', arrays.from('Назад'), 'GREEN', false))"
+                                        },
+                                        {
+                                            "type": "confirmation-request",
+                                            "condition": "true",
+                                            "procedure": "'map-handle-repeated-action'"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "call",
+                                    "condition": "true",
+                                    "procedure": "'map-enter-to-area'"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Неизвестный тип действия для области, пожалуйста, проверьте правильность написания названия области и прпробуйте снова."
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        { // Выход из региона
+            "type": "excecute",
+            "break_on": true,
+            "condition": "command.arg[0] = 'выйти' | command.arg[0] = 'назад' | command.arg[0] = 'вернуться'",
+            "entries": [
+                {
+                    "type": "excecute",
+                    "condition": "character.map.sity != null",
+                    "break_on": true,
+                    "prepare": "set info = map.getCurrentAreaInfo(character);",
+                    "entries": [
+                        {   // Устанавливаем поле map, и записываем туда текущие координаты
+                            "type": "character",
+                            "field": "map",
+                            "data": "map.detachCharacterPath(character.map)",
+                            "condition": "true"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "set options = map.getCurrentDistrictOptions(character);",
+                                    "> 'Вы успешно покинули ' + (info.type = 0 ? 'город' : 'область') + (info.name != null ? ' ' + info.name : '!') + '\n'",
+                                    "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : ''",
+                                "}"
+                            ],
+                            "keyboard": "info.type = 0 ? null : (options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')))"
+                        }
+                    ]
+                },
+                {
+                    "type": "write",
+                    "condition": "character.map.sity = null",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы не находитесь в городе, или каком-либо районе. Пожажуйста, сначала войдите в город, для использования этой команды."
+                    ]
+                }
+            ]
+        },
+        { // Покупка задания
+            "type": "excecute",
+            "break_on": true,
+            "condition": "command.arg[0] = 'покупка' | command.arg[0] = 'купить' | command.arg[0] = 'приобрести'",
+            "entries": [
+                {
+                    "type": "excecute",
+                    "condition": "character.map.sity != null",
+                    "break_on": true,
+                    "prepare": "set child_info = map.getChildAreaInfo(character, map.getIdentByName('district', strings.unregister(strings.join(arrays.slice(command.arg, 1), null, ' ')), character)); set options = map.getCurrentDistrictOptions(character)",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "child_info = null",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{> options.buy != null ? 'В данном месте есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : 'Кажется в данном месте покупать нечего... Для выхода в предыдущюю область введите ' + command.prefix + 'город выйти' }"
+                            ],
+                            "keyboard": "options.buy != null ? keyboard.createKeyboard('город купить', options.buy, 'GREEN') : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')" // TODO
+                        },
+                        {
+                            "type": "excecute",
+                            "condition": "child_info.cost != null & (arrays.includes(character.own, strings.join(character.map.stack, null, '/') + '/' + child_info.id) = false)",
+                            "break_on": true,
+                            "entries": [
+                                {
+                                    "type": "write",
+                                    "condition": "character.inventory.bans < child_info.cost",
+                                    "break_on": true,
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Невозможно приобрести собственность.\n",
+                                        "Ваш баланс на данный мемент составляет {> numbers.to_ru_format(character.inventory.bans)}, этого недостаточно для покупки стоимостью {> numbers.to_ru_format(child_info.cost)}."
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Понятно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["войти"]}
+                                        }
+                                    ]
+                                },
+                                {   // Уменьшаю баланс игрока
+                                    "type": "character",
+                                    "field": "inventory",
+                                    "data": [
+                                        {
+                                            "type": "take_away_bans",
+                                            "data": "child_info.cost"
+                                        }
+                                    ],
+                                    "condition": "true"
+                                },
+                                {   // Записываю это строение в собственность персонажу
+                                    "type": "character",
+                                    "field": "own",
+                                    "data": "arrays.append(character.own, strings.join(character.map.stack, null, '/') + '/' + child_info.id)",
+                                    "condition": "true"
+                                },
+                                {
+                                    "type": "write",
+                                    "condition": "true",
+                                    "message": [
+                                        "[СИСТЕМА]\n",
+                                        "Вы успешно приобрели {> child_info.name} стоимостью {> child_info.cost} (банов)"
+                                    ],
+                                    "keyboard": [
+                                        {
+                                            "title": "Замечательно",
+                                            "color": "GREEN",
+                                            "payload": {"header": "город", "data": ["войти"]}
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "child_info.cost != null & arrays.includes(character.own, strings.join(character.map.stack, null, '/') + '/' + child_info.id)",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Ошибка при покупке собственности: эта собственность уже приндлежит вам"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "write",
+                    "condition": "character.map.sity = null",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы не находитесь в городе, или каком-либо районе. Пожажуйста, сначала войдите в город, для использования этой команды."
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "message": [
+                "[СИСТЕМА]\n",
+                "Неизвестная команда"
+            ],
+            "condition": "true"
+        }
+    ]
+}

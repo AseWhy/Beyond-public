@@ -1,0 +1,95 @@
+input.search {
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    background: var(--background-color-2);
+    border: none;
+    margin-bottom: 0.25em;
+    outline: none;
+}
+
+.workflow {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-areas: '. .';
+    grid-template-columns: 75% 25%;
+}
+
+li.users-row-auto {
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    background: var(--background-color-1);
+    transition: 0.2s all cubic-bezier(0.075, 0.82, 0.165, 1);
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 10em minmax(20%,1fr) minmax(25%,1fr) minmax(10%,1fr) minmax(10%,1fr) 1em;
+}
+
+li.users-row-auto.selected {
+    background: var(--background-color-2);
+}
+
+li.users-row-auto.selected::after {
+    content: '»';
+}
+
+li.users-row-auto:hover {
+    background-color: var(--background-color-3);
+}
+
+.section {
+    padding: 0.25em;
+    overflow: auto;
+    height: 100%;
+}
+
+.empty-cont {
+    padding: 0.5em;
+    text-align: center;
+}
+
+.table-unit {
+    pointer-events: none;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+table.auto-table {
+    border-spacing: 0;
+}
+
+.includes-base-cont .auto-label {
+    width: 100%;
+    padding: .25em 0 0 0;
+}
+
+.includes-header {
+    padding: 0 0 0.25em 0;
+    font-size: larger;
+    font-weight: 700;
+    border-bottom: dashed 1px;
+}
+
+.includes-no-data {
+    padding: 0.5em 0 0 0;
+}
+
+.includes-base-cont button {
+    margin: 0.5em 0;
+}
+
+.includes-base-cont {
+    padding: 0.5em;
+    margin: 0.25em;
+    border: solid 1px;
+}
+
+.label-editor-common {
+    background: var(--background-color-1);
+    border: none;
+    outline: none;
+}
+
+.checkbox-common-cont {
+    padding: 0.25em;
+}

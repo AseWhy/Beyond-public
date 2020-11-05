@@ -1,0 +1,107 @@
+.workflow {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-areas: '. .';
+    grid-template-columns: 75% 25%;
+}
+
+.businesses-row-auto {
+    width: calc(100% - 0.5em);
+    gap: 0.5em;
+    padding: 0.25em;
+    background: var(--background-color-1);
+    transition: 0.2s all cubic-bezier(0.075, 0.82, 0.165, 1);
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 5em 10% auto 1em;;
+}
+
+.businesses-row-auto.selected {
+    background: var(--background-color-2);
+}
+
+.businesses-row-auto.selected::after {
+    content: '»';
+}
+
+.businesses-row-auto:hover {
+    background-color: var(--background-color-3);
+}
+
+.section {
+    padding: 0.25em;
+}
+
+.empty-cont {
+    padding: 0.5em;
+    text-align: center;
+}
+
+.table-unit {
+    pointer-events: none;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+table.auto-table {
+    border-spacing: 0;
+}
+
+input.add-inputs-name {
+    border: none;
+    background: inherit;
+    outline: none;
+    color: var(--header-text-color);
+    font-family: var(--common-font);
+    border-bottom: dashed 1px;
+    margin-right: 0.5em;
+    padding: 0.25em;
+}
+
+input.add-inputs-submit {
+    float: right;
+    outline: none;
+    border: none;
+    color: var(--header-text-color);
+    cursor: pointer;
+    background: var(--background-color-1);
+    padding: 0.25em 0.5em;
+    border-radius: 0.5em 0.25em;
+    text-transform: uppercase;
+    font-family: var(--common-font);
+}
+
+input.add-inputs-submit:hover {
+    background: var(--background-color-2);
+}
+
+td.add-cont::before {
+    content: '>> ';
+    font-family: var(--common-font);
+    display: block;
+    padding: 0.25em 0.25em 0.25em 0;
+}
+
+td.add-cont {
+    padding: .5em;
+    user-select: none;
+    cursor: default;
+    display: grid;
+    grid-template-areas: '. . .';
+    grid-template-columns: min-content auto min-content;
+    gap: 0.5em;
+}
+
+td.add-cont:hover {
+    background-color: inherit;
+}
+
+input.search {
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    background: var(--background-color-2);
+    border: none;
+    margin-bottom: 0.25em;
+    outline: none;
+}

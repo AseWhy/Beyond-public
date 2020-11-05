@@ -1,0 +1,129 @@
+.workflow {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 25% auto;
+    grid-template-rows: auto;
+}
+
+.properties > .header {
+    padding: 0.5em 0.25em;
+    width: calc(100% - 0.5em);
+    border-bottom: solid 1px;
+    background-color: var(--background-color-2);
+}  
+
+label.fi-mask {
+    cursor: pointer;
+}
+ 
+.cont-import {
+    margin: 0.25em 0px;
+    background: var(--background-color-2);
+    padding: 0.25em;
+    border-radius: 0.5em;
+    transition: all 0.5s cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+.cont-import:hover {
+    background: var(--background-color-3);
+}
+
+.cont-action > .button {
+    padding: .25em;
+    border-radius: .25em;
+    transition: filter, background-color cubic-bezier(.075,.82,.165,1) .5s;
+    background-color: var(--background-color-2);
+    width: calc(100% - 0.75em);
+    display: block;
+    cursor: pointer;
+    margin: 0px .25em .25em .25em;
+    text-align: center;
+}
+
+.cont-action > .button:first-child {
+    margin: 0 .25em .25em 0;
+}
+
+.cont-action > .button:last-child {
+    margin: 0 0 .25em .25em;
+}
+
+.cont-action > .button:hover {
+    background-color: var(--background-color-3);
+}
+
+.filename {
+    color: gray;
+    display: block;
+    max-height: 1.5em;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.map-renderer {
+    width: calc(100% - 0.5em);
+    height: 100%;
+    margin-left: 0.5em;
+    background-color: var(--background-color-2);
+}
+
+.render-cont {
+    width: 100%;
+    height: 100%;
+}
+
+.cont-action {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 2em;
+}
+
+.infotarget {
+    padding: 0.25em;
+    border: 1px dashed;
+    border-radius: 0.25em;
+    margin-bottom: 0.25em;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.infotarget.error {
+    color: var(--danger-text-color);
+}
+
+.infotarget.tip {
+    color: var(--header-text-color);
+}
+
+.infotarget.tip::before {
+    content: "» ";
+}
+
+.infotarget.error::before {
+    content: "⚠ ";
+}
+
+.auto-props-label {
+    padding: 0.25em;
+    background-color: var(--background-color-2);
+    margin: 0.25em 0;
+    text-transform: uppercase;
+    font-size: larger;
+    cursor: pointer;
+}
+
+.auto-props-label:hover {
+    background-color: var(--background-color-3);
+}
+
+.auto-message {
+    display: block;
+    font-size: medium;
+    pointer-events: none;
+}
+
+.auto-message::before {
+    content: "» ";
+}

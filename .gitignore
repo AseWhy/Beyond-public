@@ -1,0 +1,8 @@
+node_modules
+control/data/scripts
+control/data/styles
+tests/logs
+logs
+.VSCodeCounter/*
+start.bat
+package-lock.json

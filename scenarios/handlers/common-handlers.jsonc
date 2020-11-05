@@ -1,0 +1,122 @@
+{
+    "name": "Общий сценарий обработчиков",
+    "id": "common-handlers", // Будет вызываться каждую минуту для пользователей находящихся дома.
+    "use_state": false,
+    "use_character": true,
+    "notify_error": false,
+    "import": ["map.lib"],
+    "preset": {},
+    "condition": "false", // Невыполняемый напрямую сценарий
+    "entries": [
+        {
+            "type": "excecute",
+            "condition": "child_info != null",
+            "entries": [
+                { // Завершаем сценарий
+                    "type": "scenario",
+                    "order": "apply",
+                    "target": "'announcement'", // Безусловно перебрасывает сценарий на сценарий announcement
+                    "condition": "child_info.name = 'Написать новое'"
+                },
+                {
+                    "type": "excecute",
+                    "condition": "child_info.name = 'Просмотреть существующие'",
+                    "entries": [
+                        {   // Записываем объявление
+                            "type": "game-data",
+                            "order": "get",
+                            "field": "announcements",
+                            "condition": "true"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[ЗАПИСИ НА ДОСКЕ]\n",
+                                "{> game_data.announcements != null ? strings.join(objects.values(game_data.announcements.contents), null, '\n***\n') : 'Кажется записей пока нет...'}"
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Выйти",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]} // Вот это костыль ян
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "condition": "zone != null & zone.name = 'Бухать'",
+            "prepare": "set max = character.endurance.max / 2",
+            "entries": [
+                {
+                    "type": "excecute",
+                    "condition": "character.health.value = 1 | max < character.endurance.value | zone.custom_fields.action_excecution_cost > character.inventory.bans",
+                    "break_on": true,
+                    "prepare": "set info = map.getCurrentAreaInfo(character);",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "character.health.value = 1",
+                            "message": "{> zone.custom_fields.action_abort_health}"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "max < character.endurance.value",
+                            "message": "{> zone.custom_fields.action_abort_endurance }"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "zone.custom_fields.action_excecution_cost > character.inventory.bans",
+                            "message": "{> zone.custom_fields.action_abort_money}"
+                        },
+                        {   // Устанавливаем поле map, и записываем туда текущие координаты
+                            "type": "character",
+                            "field": "map",
+                            "data": "map.detachCharacterPath(character.map)",
+                            "condition": "true"
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "{",
+                                    "set options = map.getCurrentDistrictOptions(character);",
+                                    "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город войти (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : ''",
+                                "}"
+                            ],
+                            "keyboard": "info.type = 0 ? null : (options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город войти', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город войти', options.includes, 'GREEN'), keyboard.createKeyboard('город войти', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')))"
+                        }
+                    ]
+                },
+                {
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value < max ? (max - character.endurance.value > 2 ? character.endurance.value + 2 : max) : max",
+                    "condition": "true" // Барак
+                },
+                { 
+                    "type": "character",
+                    "field": "health",
+                    "data": "character.health.value - 1",
+                    "condition": "true"
+                },
+                {   // Уменьшаю баланс игрока
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "take_away_bans",
+                            "data": "zone.custom_fields.action_excecution_cost"
+                        }
+                    ],
+                    "condition": "true"
+                }
+            ]
+        }
+    ]
+}

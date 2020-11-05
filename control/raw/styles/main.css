@@ -1,0 +1,426 @@
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url(/fonts/18893.ttf)
+}
+
+@font-face {
+    font-family: 'Andale Mono';
+    src: url(/fonts/14547.ttf)
+}
+
+:root {
+    --header-height: 4em;
+    --header-text-color: wheat;
+    --background-color-1: #282828;
+    --background-color-2: #323232;
+    --background-color-3: #3c3c3c;
+    --danger-text-color: rgb(220, 90, 90);
+    --common-font: 'JetBrains Mono';
+    --header-font: 'Andale Mono'
+}
+
+:root > * {
+    font-size: 11pt;
+}
+
+*::-webkit-scrollbar { 
+    width: 3px;
+    height: 3px;
+}
+
+*::-webkit-scrollbar-thumb { 
+    background-color: burlywood;
+}
+
+*::placeholder {
+    color: var(--header-text-color);
+}
+
+* {
+    color: var(--header-text-color);
+    font-family: var(--common-font);
+}
+ 
+a {
+    color: skyblue
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 0.5em 0;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    margin: unset;
+    background-image: url(/images/user_variator_background_0.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.container {
+    width: 98vw;
+    height: 98vh;
+    padding-left: 1vw;
+    padding-top: 1vh;
+    display: grid;
+    grid-template-rows: var(--header-height) auto;
+    filter: drop-shadow(2px 4px 6px black);
+}
+
+.logout {
+    background-image: url(/images/exit.image.icon.png);
+    background-position: center;
+    background-size: 50%;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+.logout:hover {
+    background-color: var(--background-color-2);
+}
+
+.avatar {
+    width: calc(var(--header-height) - 1em);
+    height: calc(var(--header-height) - 1em);
+    border-radius: 0.75em;
+    border: none;
+    outline: none;
+    margin: 0.3em;
+    object-fit: cover;
+}
+
+.waiting_login .miniprofile {
+    background-image: url(/images/profile_loader.png);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.waiting_login .box_header {
+    grid-template-columns: max-content auto;
+}
+
+.container.waiting_login  .miniprofile > div {
+    display: none;
+}
+
+.box_header {
+    display: grid;
+    grid-template-columns: max-content var(--header-height) auto;
+    grid-template-rows: auto;
+    height: calc(var(--header-height) - 0.45em)
+}
+
+.box_header > div:not(:first-child):not(:last-child) {
+    margin: 0px .2em;
+}
+
+.box_header > :last-child {
+    margin-left: 0.2em;
+}
+
+.box_header > :first-child {
+    margin-right: 0.2em;
+}
+
+.box.bodytarget {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.miniprofile {
+    display: grid;
+    grid-template-columns: calc(var(--header-height) - 0.4em) auto;
+    overflow: hidden;
+    padding: 0 .25em 0 0;
+    border-radius: 1em 0 0 1em;
+}
+
+.miniprofile > .profile {
+    display: block;
+    width: fit-content;
+    max-width: 300px;
+    height: fit-content;
+    margin: auto .5em auto 0.25em;
+    font-size: 1.1em;
+}
+
+.miniprofile > .profile > .role {
+    font-size: 0.8em;
+    font-family: var(--common-font);
+    color: var(--background-color-3);
+    text-transform: uppercase;
+}
+
+.miniprofile > .profile > .name {
+    text-transform: uppercase;
+    margin: auto 0px 0px;
+    font-family: var(--common-font);
+    color: var(--header-text-color);
+}
+
+.box {
+    background-color: var(--background-color-1);
+}
+
+.box > .header {
+    display: flex;
+    text-transform: uppercase;
+    font-family: var(--common-font);
+    width: max-content;
+    color: wheat;
+    height: 100%;
+}
+
+.box > .header > .button {
+    line-height: var(--header-height);
+    margin: 0 .5em 0 0;
+    padding: 0px 0.5em;
+    cursor: pointer;
+    user-select: none;
+}
+
+.box > .header > .button:hover, .header > .button.active {
+    background-color: var(--background-color-2);
+}
+
+.imbedded {
+    width: calc(100% - 1em);
+    height: calc(100% - 1em);
+    padding: 0.5em;
+}
+
+.header_cont {
+    overflow: hidden;
+    overflow-x: auto;
+}
+
+.waiting_login > .logout {
+    display: none;
+}
+
+input[type="file"], input[type="checkbox"] {
+    display: none;
+}
+
+.waiting_login.container .logout {
+    display: none;
+}
+
+.fi_mask {
+    padding: 0.25em;
+    border-radius: 0.25em;
+    transition: all cubic-bezier(0.075, 0.82, 0.165, 1) 0.5s;
+    background-color: var(--background-color-2);
+    width: calc(100% - 0.5em);
+    display: block;
+    cursor: pointer;
+}
+
+.fi_mask:hover {
+    background-color: var(--background-color-3);
+}
+
+.disable {
+    pointer-events: none;
+    filter: contrast(0.45);
+}
+
+.section-header {
+    height: 1.5em;
+    width: calc(100% - 0.5em);
+    line-height: 1.5em;
+    padding: 0.25em;
+    font-size: 1em;
+    text-transform: uppercase;
+}
+
+.section-body {
+    height: calc(100% - 2.75em);
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    margin-top: 0.25em;
+    overflow-y: auto;
+}
+
+.infotarget {
+    padding: 0.25em;
+    border: 1px dashed;
+    border-radius: 0.25em;
+    margin-bottom: 0.25em;
+    width: calc(100% - 0.5em - 2px);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.infotarget.error {
+    color: var(--danger-text-color);
+}
+
+.infotarget.tip {
+    color: var(--header-text-color);
+}
+
+.infotarget.tip::before {
+    content: "» ";
+}
+
+.infotarget.error::before {
+    content: "⚠ ";
+}
+
+.auto-select {
+    background: var(--background-color-2);
+    outline: none;
+    border: 1px solid;
+    width: 100%;
+}
+
+p.auto-tip {
+    padding: 0.25em;
+    border: solid 1px;
+    margin: 0.25em 0;
+}
+
+.auto-label {
+    display: grid;
+    font-size: larger;
+    text-transform: uppercase;
+    font-family: var(--header-font);
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+}
+
+.auto-label > textarea.auto_message {
+    display: block;
+    font-size: medium;
+    padding: 0.25em;
+    cursor: text;
+    border: 1px dashed;
+    border-top: none;
+    border-left: none;
+    margin: 0px;
+    resize: none;
+    background: inherit;
+    color: var(--header-text-color);
+    outline: none;
+    height: 1.25em;
+}
+
+input.auto-input {
+    width: calc(100% - 0.5em - 1px);
+    padding: 0.25em;
+    background-color: var(--background-color-1);
+    border-style: dashed;
+    outline: none;
+    border-width: 0px 1px 1px 0px;
+    border-color: inherit;
+}
+
+label.auto-checkbox {
+    margin: 0 .25em 0 0;
+    border: 1px solid;
+    display: block;
+    float: left;
+    width: 2em;
+    height: 1em;
+}
+
+.auto-table {
+    width: 100%;
+    text-align: left;
+} 
+
+.auto-checkbox::before {
+    display: block;
+    width: 1em;
+    height: 1em;
+    position: relative;
+    line-height: 1em;
+    background-color: var(--background-color-2);
+    text-align: center;
+}
+
+ul.auto-list {
+    margin: 0;
+    padding: 0;
+}
+
+input[type="checkbox"] + .auto-checkbox::before {
+    content: '-';
+}
+
+input[type="checkbox"]:checked + .auto-checkbox::before {
+    content: '+';
+    left: 1em;
+}
+
+.button-statement {
+    width: 100%;
+    background-color: var(--background-color-2);
+    border: dashed 1px;
+    padding: 0.5em;
+    cursor: pointer;
+    outline: none;
+}
+
+.button-statement:hover {
+    background-color: var(--background-color-3);
+}
+
+.button-danger {
+    background: inherit;
+    color: var(--danger-text-color);
+    cursor: pointer;
+    border: dashed 1px;
+    width: 100%;
+    outline: none;
+    padding: 0.5em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.button-danger:hover {
+    background-color: var(--background-color-3);
+}
+
+* [disable='true']{
+    pointer-events: none;
+    filter: brightness(0.5);
+}
+
+th {
+    position: sticky;
+    top: 0;
+    background-color: var(--background-color-2);
+    padding: 0.5em;
+}
+
+td {
+    padding: 0.25em 0.5em;
+}
+
+.table-common-cont {
+    width: 100%;
+    height: 100%;
+    overflow: hidden auto;
+}
+
+@media screen and (max-width: 900px) {
+    .waiting_login .box_header {
+        grid-template-columns: min-content auto;
+    }
+
+    .box_header {
+        grid-template-columns: min-content var(--header-height) auto;
+    }
+
+    .miniprofile > .profile {
+        font-size: 0.9em;
+    }
+}

@@ -1,0 +1,152 @@
+{
+    "name": "Работа-кликер",
+    "id": "work-clicker",
+    "use_state": true,
+    "use_character": true,
+    "import": ["businesses.lib", "map.lib"],
+    "preset": {
+        "income": null
+    },
+    "condition": "false",
+    "entries": [
+        {   // Завершаем сценарий
+            "type": "excecute",
+            "condition": "command.header = 'выйти'",
+            "prepare": "set options = map.getCurrentDistrictOptions(character);",
+            "entries": [
+                {   // Зачисляю доход
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "add_bans",
+                            "data": "state.data.income != null ? (state.data.income.bans != null ? state.data.income.bans : 0) : 0"
+                        },
+                        {
+                            "type": "add_backpack",
+                            "data": "state.data.income != null ? (state.data.income.backpack != null ? state.data.income.backpack : 0) : 0"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Действие успешно завершено.",
+                        "{> state.data.income != null ? 'Всего заработано: ' +  businesses.parseIncome(state.data.income) : 'Кажется вы ничего не заработали...'}"
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Понятно",
+                            "color": "GREEN",
+                            "payload": {"header": "город", "data": ["войти"]}
+                        }
+                    ],
+                    "condition": "true"
+                },
+                { // Завершаем сценарий
+                    "type": "scenario",
+                    "order": "end",
+                    "condition": "true"
+                }
+            ]
+        },
+        {   // Завершаем сценарий
+            "type": "excecute",
+            "condition": "command.header = 'работать'",
+            "prepare": "set work = businesses.getWorkFullInfoBy('id', character.data.cur_work_ident, character);",
+            "entries": [
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Целевой персонаж не соответствует минимальным требованиям для выполнения этой работы. Попробуйте чуть позже, возможно небольшой отдых все исправит."
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Понятно",
+                            "color": "GREEN",
+                            "payload": {"header": "выйти", "data": []}
+                        }
+                    ],
+                    "condition": "work.condition = false | businesses.haveCost(work.cost, character) = false"
+                },
+                {   // Забираю плату выносливость
+                    "type": "character",
+                    "field": "endurance",
+                    "data": "character.endurance.value - work.cost > 1 ? character.endurance.value - work.cost : 1",
+                    "condition": "numbers.isNumber(work.cost)"
+                },
+                {
+                    "type": "excecute",
+                    "condition": "numbers.isNumber(work.cost) = false",
+                    "entries": [
+                        {   // Забираю плату выносливость
+                            "type": "character",
+                            "field": "endurance",
+                            "data": "character.endurance.value - work.cost.endurance > 1 ? character.endurance.value - work.cost.endurance : 1",
+                            "condition": "numbers.isNumber(work.cost.endurance)"
+                        },
+                        {   // Забираю плату здоровье
+                            "type": "character",
+                            "field": "health",
+                            "data": "character.health.value - work.cost.health > 1 ? character.health.value - work.cost.health : 1",
+                            "condition": "numbers.isNumber(work.cost.health)"
+                        }
+                    ]
+                },
+                {
+                    "type": "save",
+                    "entries": { 
+                        "income": "businesses.addIncome(state.data.income != null ? state.data.income : objects.create(), work.income)"
+                    },
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы успешно заработали {> businesses.parseIncome(work.income)}, также на действие было потрачено {> businesses.parseCost(work.cost)}"
+                    ],
+                    "keyboard": [
+                        {
+                            "title": "Работать",
+                            "color": "BLUE",
+                            "payload": {"header": "работать", "data": []}
+                        },
+                        {
+                            "title": "Выйти",
+                            "color": "GREEN",
+                            "payload": {"header": "выйти", "data": []}
+                        }
+                    ],
+                    "condition": "true"
+                }
+            ]
+        },
+        {
+            "type": "write",
+            "break_on": true,
+            "message": [
+                "[СИСТЕМА]\n",
+                "Для того чтобы начать работать, напишите {> command.prefix}работать, если вы случайно зашли в эту область напишите {> command.prefix}выйти - для выхода в предыдущую область"
+            ],
+            "keyboard": [
+                {
+                    "title": "Работать",
+                    "color": "BLUE",
+                    "payload": {"header": "работать", "data": []}
+                },
+                {
+                    "title": "Выйти",
+                    "color": "GREEN",
+                    "payload": {"header": "выйти", "data": []}
+                }
+            ],
+            "condition": "true"
+        }
+    ]
+}
