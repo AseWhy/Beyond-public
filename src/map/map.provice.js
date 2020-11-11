@@ -1,4 +1,4 @@
-const { Sity } = require("./map.sity");
+const { City } = require("./map.city");
 
 module.exports.Province = class Province {
     constructor(data, region){
@@ -8,13 +8,25 @@ module.exports.Province = class Province {
         this.population  = data.population;
         this.distance    = data.distance;
         this.owner       = region;
+        this.position    = JSON.parse(data.position);
         this.neighbors   = JSON.parse(data.neighbors);
-        this.sity        = data.sity != null ? new Sity(JSON.parse(data.sity), this) : null;
+        this.city        = data.city != null ? new City(JSON.parse(data.city), this) : null;
 
         this.owner.population += this.population;
 
-        if(this.sity !== null)
-            region.owner.sitys.push(this.sity);
+        if(this.city !== null) {
+            region.owner.citys.push(this.city);
+
+            if(this.position)
+                for(let i = 0, leng = region.owner.citys.length, buffer;i < leng;i++){
+                    buffer = Math.sqrt(Math.abs(this.position.x - region.owner.citys[i].owner.position.x) ** 2 + Math.abs(this.position.y - region.owner.citys[i].owner.position.y) ** 2)
+                    
+                    if(buffer > region.owner.max_distance_beetwen_citys)
+                        region.owner.max_distance_beetwen_citys = buffer;
+                    else if(buffer < region.owner.min_distance_beetwen_citys)
+                        region.owner.min_distance_beetwen_citys = buffer;
+                }
+        }
     }
 
     toDisplay(){
@@ -24,7 +36,7 @@ module.exports.Province = class Province {
             population: this.population,
             distance: this.distance,
             speed_mult: this.speed_mult,
-            sity: this.sity != null ? this.sity.toDisplay() : null
+            city: this.city != null ? this.city.toDisplay() : null
         }
     }
 }

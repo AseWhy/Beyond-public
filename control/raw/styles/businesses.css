@@ -31,6 +31,8 @@
 
 .section {
     padding: 0.25em;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .empty-cont {
@@ -103,5 +105,55 @@ input.search {
     background: var(--background-color-2);
     border: none;
     margin-bottom: 0.25em;
+    outline: none;
+}
+
+.income-cont {
+    border: solid 1px;
+    padding: 0.5em;
+    margin: 0.5em 0 0 0;
+}
+
+.price-row-data {
+    display: grid;
+    grid-template-areas:
+        'a a'
+        'b c';
+    grid-template-rows: 1.5em 1.5em;
+    grid-template-columns: auto 1.5em;
+    margin: 0.25em 0;
+}
+
+.price-name-data {
+    grid-area: a;
+    line-height: 1.5em;
+}
+
+.price-input-data {
+    background-color: initial;
+    grid-area: b;
+    border: none;
+    outline: none;
+}
+
+.price-rem-data {
+    grid-area: c;
+    background-color: var(--danger-text-color);
+    border: none;
+    cursor: pointer;
+}
+
+.price-rem-data:hover {
+    filter: contrast(0.5);
+}
+
+.add-price-cont {
+    display: grid;
+    grid-template-areas: '. .';
+    gap: 0.5em;
+}
+
+.add-price-select {
+    background: var(--background-color-1);
     outline: none;
 }

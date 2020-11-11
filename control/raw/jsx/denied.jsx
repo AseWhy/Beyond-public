@@ -1,0 +1,1 @@
+window.addEntryPage("denied", -0x1, null, (data, emitter, elements) => {}, (data, emitter) => {console.log("Leave denied page")});

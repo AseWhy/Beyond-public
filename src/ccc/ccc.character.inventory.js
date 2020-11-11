@@ -30,11 +30,11 @@ module.exports.CharacterInventory = class CharacterInventory {
             this.bags.push(i_free, i_free, i_free, i_free, i_free);
 
             this.backpack = [
-                0x0,
-                100 * Math.round(1 + 0.1 * character.stats.stats.strength.value) * this.backpack_modifier
+                0x0n,
+                BigInt(100 * Math.round(1 + 0.1 * character.stats.stats.strength.value) * this.backpack_modifier)
             ];
 
-            character.change_stack.push('inventory');
+            character.addChange('inventory');
         } else {
             data                    = JSON.parse(data);
 
@@ -48,8 +48,8 @@ module.exports.CharacterInventory = class CharacterInventory {
             this.transport          = global.managers.item.getItem(data.transport);
 
             this.backpack = [
-                data.backpack,
-                100 * Math.round(1 + 0.1 * character.stats.stats.strength.value) * this.backpack_modifier
+                BigInt(data.backpack),
+                BigInt(100 * Math.round(1 + 0.1 * character.stats.stats.strength.value) * this.backpack_modifier)
             ];
 
             while(data.slots_count--){
@@ -71,9 +71,12 @@ module.exports.CharacterInventory = class CharacterInventory {
 
             switch(orders[i].type){
                 case 'set_bans':
-                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint')
+                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint') {
                         this.bans = BigInt(Math.floor(orders[i].data));
-                    else
+
+                        if(this.bans < 0n)
+                            this.bans = 0n;
+                    } else
                         throw new TypeError("The count of bans must have a number type.")
                 break;
                 case 'add_bans':
@@ -83,27 +86,36 @@ module.exports.CharacterInventory = class CharacterInventory {
                         throw new TypeError("The count of bans must have a number type.")
                 break;
                 case 'take_away_bans':
-                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint')
+                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint') {
                         this.bans -= BigInt(Math.floor(orders[i].data));
-                    else
+
+                        if(this.bans < 0n)
+                            this.bans = 0n;
+                    } else
                         throw new TypeError("The count of bans must have a number type.")
                 break;
                 case 'set_backpack':
-                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint')
-                        this.backpack = BigInt(Math.floor(orders[i].data));
-                    else
+                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint') {
+                        this.backpack[0] = BigInt(Math.floor(orders[i].data));
+
+                        if(this.backpack[0] < 0n)
+                            this.backpack[0] = 0n;
+                    } else
                         throw new TypeError("The count of backpack must have a number type.")
                 break;
                 case 'add_backpack':
                     if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint')
-                        this.backpack += BigInt(Math.floor(orders[i].data));
+                        this.backpack[0] += BigInt(Math.floor(orders[i].data));
                     else
                         throw new TypeError("The count of backpack must have a number type.")
                 break;
                 case 'take_away_backpack':
-                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint')
-                        this.backpack -= BigInt(Math.floor(orders[i].data));
-                    else
+                    if(typeof orders[i].data === 'number' || typeof orders[i].data === 'bigint') {
+                        this.backpack[0] -= BigInt(Math.floor(orders[i].data));
+
+                        if(this.backpack[0] < 0n)
+                            this.backpack[0] = 0n;
+                    } else
                         throw new TypeError("The count of backpack must have a number type.")
                 break;
             }

@@ -1,4 +1,4 @@
-window.addEntryPage("map", (exports, emitter) => {
+window.addEntryPage("map", window.config.permissions.MAP, (exports, emitter) => {
     // Offset variables
     exports.set('mousestep', 0.025);
     exports.set('mousemax', 0.025);
@@ -75,8 +75,8 @@ window.addEntryPage("map", (exports, emitter) => {
           disable = value =>
             [...document.getElementsByClassName("disableing")]
                 .forEach(e => e.classList[value ? "add" : "remove"]('disable'));
+    
     //#endregion
-
     emitter.addEmitter("update", data => {
         render_data.renderdata = data;
 
@@ -150,7 +150,7 @@ window.addEntryPage("map", (exports, emitter) => {
 
         disable(true);
 
-        window.api.map.set(map, progress => {
+        window.api.map.map.set(map, progress => {
             if(progress.code > 0){
                 percent = parseInt(progress.cur / progress.total * 100);
 
@@ -246,7 +246,7 @@ window.addEntryPage("map", (exports, emitter) => {
     }
 
     const importers = document.getElementsByClassName("importer"),
-          fns = document.getElementsByClassName("filename");
+          fns       = document.getElementsByClassName("filename");
 
     for(let i = 0, leng = importers.length;i < leng;i++)
         (i => {
@@ -270,7 +270,7 @@ window.addEntryPage("map", (exports, emitter) => {
 
             disable(true);
 
-            const r_data = await window.api.map.get(null, progress => {
+            const r_data = await window.api.map.map.get(null, progress => {
                 message("Загружаю текущую карту " + utils.conv_size(progress.loaded) + " из " + utils.conv_size(progress.from), "tip", parseInt(progress.loaded / progress.from * 100));
             })
 

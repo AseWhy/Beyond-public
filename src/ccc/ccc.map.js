@@ -6,7 +6,7 @@ module.exports.MapDescriptor = class MapDescriptor {
         this.map = null;
         this.region = null;
         this.province = null;
-        this.sity = null;
+        this.city = null;
         this.district = null; // 1031/3123/12331/... В зависимости от числа вхождений
         this.deep = 0;
 
@@ -22,8 +22,8 @@ module.exports.MapDescriptor = class MapDescriptor {
         if(this.province)
             path += "/" + this.province.id
 
-        if(this.sity)
-            path += "/" + this.sity.id
+        if(this.city)
+            path += "/" + this.city.id
 
         if(Array.isArray(this.district) && this.district.length > 0){
             path += '/' + this.district[this.district.length - 1].path;
@@ -39,7 +39,7 @@ module.exports.MapDescriptor = class MapDescriptor {
         this.map = null;
         this.region = null;
         this.province = null;
-        this.sity = null;
+        this.city = null;
         this.district = null;
 
         for(let i = 0, leng = path.length; i < leng;i++){
@@ -52,7 +52,7 @@ module.exports.MapDescriptor = class MapDescriptor {
             if(path.length > 3) {
                 this.region = this.map.regions.get(parseInt(path[1]));
                 this.province = this.region.provinces.get(parseInt(path[2]));
-                this.sity = this.province.sity.toDisplay();
+                this.city = this.province.city.toDisplay();
                 this.province = this.province.toDisplay()
                 this.region = this.region.toDisplay()
                 

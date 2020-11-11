@@ -1,0 +1,187 @@
+{
+    "name": "Корабли",
+    "id": "shipping-common",
+    "use_state": true,
+    "use_character": true,
+    "import": ["map.lib"],
+    "preset": {},
+    "condition": "false", // Можно только насильно перевести
+    "excecutors": [
+        {
+            "type": "excecutor",
+            "ident": "map-shipping-start", // Исполнитель, начинает перемещение
+            "condition": "transfer != null", // Имеется ли цель перемещения
+            "entries": [
+                {   // Уменьшаю баланс игрока
+                    "type": "character",
+                    "field": "inventory",
+                    "data": [
+                        {
+                            "type": "take_away_bans",
+                            "data": "cost"
+                        }
+                    ],
+                    "condition": "true"
+                },
+                {
+                    "type": "character",
+                    "field": "data",
+                    "data": { 
+                        "moving": "true",
+                        "moving_target": "'целевой город'",
+                        "moving_from": "character.map.city.id",
+                        "moving_to": "map.getIdentByName('city', transfer, character)",
+                        "moving_start": "date.now()",
+                        "moving_arrival_after": "map.getShipTimeFor(character.map.city, map.getSityByName(transfer))"
+                    },
+                    "condition": "true"
+                },
+                {
+                    "type": "write",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Перемещние персонажа, до прибытия в {> character.data.moving_target != null ? character.data.moving_target : 'целевую провинцию'} осталось: {> numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now())}"
+                    ],
+                    "keyboard": [],
+                    "condition": "true"
+                },
+                {
+                    "type": "bind",
+                    "ident": "map-go-shiping",
+                    "jump": "character.data.moving_arrival_after",
+                    "entries": [
+                        {   // Устанавливаем поле map, и записываем туда текущие координаты
+                            "type": "character",
+                            "field": "map",
+                            "data": "map.getMapCharacterPathBy('city', character.data.moving_to)",
+                            "condition": "true"
+                        },
+                        {   // Выводим сообщение о том что перемещение завершено.
+                            "type": "write",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Перемещение завершено.",
+                                "Ваш текущий город: {> character.map.city.name}. Сейчас вы находитесь на главной площади."
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "К городу",
+                                    "color": "GREEN",
+                                    "payload": {"header": "город", "data": ["войти"]}
+                                },
+                                {
+                                    "title": "Выйти из города",
+                                    "color": "RED",
+                                    "payload": {"header": "город", "data": ["выйти"]}
+                                }
+                            ],
+                            "condition": "true"
+                        },
+                        {   // Устанавливаем в данных персонажа поле перемещение на false
+                            "type": "character",
+                            "break_on": true,
+                            "field": "data",
+                            "data": {
+                                "moving": "false"
+                            },
+                            "condition": "true"
+                        }
+                    ],
+                    "condition": "true"
+                }
+            ]
+        }
+    ],
+    "entries": [
+        {
+            "type": "excecute",
+            "condition": "child_info.name = 'Отплыть'",
+            "prepare": "set ships = map.getShippingListFor(character);set transfer = arrays.includes_command(ships.names, arrays.slice(command.arg, 2))",
+            "break_on": true,
+            "entries": [
+                {
+                    "type": "write",
+                    "condition": "transfer = null",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Куда бы вы хотели отправится?",
+                        "{> ships.out}\n",
+                        "Для выбора введите {> command.prefix}город выбрать отплыть (и тут название города в который вы бы хотели отплыть.)"
+                    ],
+                    "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать отплыть', ships.names, 'BLUE'), keyboard.createKeyboard('город выбрать', 'Назад', 'RED', false, true, true))"
+                },
+                {
+                    "type": "excecute",
+                    "break_on": true,
+                    "condition": "transfer != null", // Имеется ли цель перемещения
+                    "prepare": "set cost = map.getShipCostFor(character.map.city, map.getSityByName(transfer))",
+                    "entries": [
+                        {
+                            "type": "write",
+                            "condition": "cost > character.inventory.bans",
+                            "break_on": true,
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "У вас недостаточно банов.\n",
+                                "Цена: {> numbers.to_game_price_format(cost)} (банов)",
+                                "Целевой город: {> transfer}",
+                                "Исходный город: {> character.map.city.name}",
+                                "Время на перемещение: {> numbers.to_ru_time_value(map.getShipTimeFor(character.map.city, map.getSityByName(transfer)))}"
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Понятно",
+                                    "color": "BLUE",
+                                    "payload": {"header": "город", "data": ["выбрать", "отплыть"]}
+                                }
+                            ]
+                        },
+                        {
+                            "type": "write",
+                            "condition": "true",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Будет начато перемещение в целевой город.\n",
+                                "Цена: {> numbers.to_game_price_format(cost)} (банов)",
+                                "Целевой город: {> transfer}",
+                                "Исходный город: {> character.map.city.name}",
+                                "Время на перемещение: {> numbers.to_ru_time_value(map.getShipTimeFor(character.map.city, map.getSityByName(transfer)))}\n",
+                                "Для подтверждения введите {> command.prefix}продолжить"
+                            ],
+                            "keyboard": [
+                                {
+                                    "title": "Продолжить",
+                                    "color": "RED",
+                                    "payload": {"header": "продолжить", "data": []}
+                                },
+                                {
+                                    "title": "Назад",
+                                    "color": "BLUE",
+                                    "payload": {"header": "город", "data": ["выбрать", "отплыть"]}
+                                }
+                            ]
+                        },
+                        {
+                            "type": "confirmation-request",
+                            "condition": "true",
+                            "procedure": "'map-shipping-start'"
+                        }
+                    ]
+                },
+                {
+                    "type": "write",
+                    "condition": "command.arg[2] = null",
+                    "break_on": true,
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Этот город пока ещё не существует. Пожалуйста выберете другой.",
+                        "{> ships.out}\n",
+                        "Для выбора введите {> command.prefix}город выбрать отплыть (и тут название города в который вы бы хотели отплыть.)"
+                    ],
+                    "keyboard": "arrays.concat(keyboard.createKeyboard('город выбрать отплыть', ships.names, 'BLUE'), keyboard.createKeyboard('город войти', 'Назад', 'RED', false, true, true))"
+                }
+            ]
+        }
+    ]
+}

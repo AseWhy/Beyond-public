@@ -5,7 +5,7 @@ const { PushedCommand } = require("./pushed.command"),
       { Heap } = require("./pattern");
 
 module.exports.QueryData = class QueryData {
-    constructor(command, user, state, flags) {
+    constructor(command, user, flags) {
         this.command = command;
         this.user = user;
         this.flags = flags != null ? flags : new Array();
@@ -13,40 +13,23 @@ module.exports.QueryData = class QueryData {
         this.query = new Heap({
             command: {
                 prefix: global.params.command_emitter.command_prefix,
-                type: command ? command.type : null,
-                header: command ? command.header : null,
-                arg: command ? command.data : null
+                type: command != null ? command.type : null,
+                header: command != null ? command.header : null,
+                arg: command != null ? command.data : null
             },
-            user: {
-                id: user.id,
-                registered: user.registered,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
-                scenario: {
-                    id: user.scenario.id,
-                    state: user.scenario.state,
-                    data: user.scenario.data
-                }
-            }
+            user: user.toDisplay()
         });
-
-        if(state)
-            this.setState(state);
     }
     
     /**
      * Разрешает пользователю вновь ипользовать бота. Вызывается когда все команды пользователя обработаны.
      */
     async disconnect(){
-        if(this.character) {
-            if(this.character.confirmation != null && !this.character.confirmation_request && !this.flags.includes('no-edit')){
-                this.character.edit("confirmation", null);
-            }
-
-            if(!this.flags.includes('no-commit')) {
-                await this.character.commit();
-            }
+        if(this.character && this.character.confirmation != null && !this.character.change_stack.includes('confirmation') && !this.flags.includes('no-edit')){
+            this.character.edit("confirmation", null);
         }
+
+        await this.close();
 
         global.managers.user.removeConnection(this.user.id);
     }
@@ -55,13 +38,30 @@ module.exports.QueryData = class QueryData {
      * Почте тоже самое что и disonnect, но этот метод вызывает для сохранения изминений вызванных менеджером событий
      */
     async close(){
-        if(this.character && !this.flags.includes('no-commit')) {
-            await this.character.commit();
+        if(!this.flags.includes('no-commit')){
+            await this.user.commit();
+
+            if(this.character) {
+                await this.character.commit();
+            }
         }
     }
 
     /**
-     * Добавляет данные персонажа пользователю.
+     * Устанавливает данные пользователя.
+     * 
+     * @param {Character} character 
+     */
+    setUser(user){
+        this.user = character;
+
+        this.query.set("user", user.toDisplay());
+
+        return this;
+    }
+
+    /**
+     * Устанавливает данные персонажа пользователю.
      * 
      * @param {Character} character 
      */
@@ -79,12 +79,13 @@ module.exports.QueryData = class QueryData {
      * @param {ExcecutionState} state Стадия исполнения сценария
      */
     setState(state){
-        this.state = state;
+        const user = this.query.get('user');
 
-        this.query.set("state", {
-            state: state.state,
-            data: state.data
-        });
+        if(user != null)
+            user.set('state', {
+                state: state.state,
+                data: state.data
+            });
 
         return this;
     }

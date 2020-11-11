@@ -1,6 +1,6 @@
 // Интерфейс взаимодействия сценарного движка с картой
 
-const Utils = require("../utils");
+const utils = require("../utils");
 
 module.exports.name = 'map';
 
@@ -17,7 +17,7 @@ module.exports.lib = {
                     includes = global.managers.map.getDistrictByUId(source.uid);
 
                 if(includes != null){
-                    includes = includes.getOptionsForSity(character.map.sity, character);
+                    includes = includes.getOptionsForCity(character.map.city, character);
                 } else {
                     return null;
                 }
@@ -26,8 +26,8 @@ module.exports.lib = {
                     if(includes[i].id == child_id)
                         return includes[i].toDisplay();
             }
-        } else if (character.map.sity !== null) {
-            let includes = global.managers.map.getDistrictsForSity(character.map.sity, character);
+        } else if (character.map.city !== null) {
+            let includes = global.managers.map.getDistrictsForCity(character.map.city, character);
 
             if(includes.length > 0){
                 for(let i = 0, leng = includes.length;i < leng;i++)
@@ -53,10 +53,10 @@ module.exports.lib = {
                     type: 1
                 };
             }
-        } else if (character.map.sity !== null) {
+        } else if (character.map.city !== null) {
             return {
-                name: character.map.sity.name,
-                description: character.map.sity.description,
+                name: character.map.city.name,
+                description: character.map.city.description,
                 subtype: null,
                 type: 0
             };
@@ -79,7 +79,7 @@ module.exports.lib = {
                     includes = global.managers.map.getDistrictByUId(source.uid);
 
                 if(includes != null){
-                    includes = includes.getOptionsForSity(character.map.sity, character);
+                    includes = includes.getOptionsForCity(character.map.city, character);
                 } else {
                     return null;
                 }
@@ -97,15 +97,15 @@ module.exports.lib = {
                     type: 1
                 };
             }
-        } else if (character.map.sity !== null) {
-            let includes = global.managers.map.getDistrictsForSity(character.map.sity, character);
+        } else if (character.map.city !== null) {
+            let includes = global.managers.map.getDistrictsForCity(character.map.city, character);
 
             if(includes.length > 0){
                 for(let i = 0, leng = includes.length;i < leng;i++)
                     out.push(includes[i].name)
 
                 return {
-                    source: character.map.sity.name,
+                    source: character.map.city.name,
                     includes: out.length != 0 ? out : null,
                     buy: buy.length != 0 ? buy : null,
                     type: 0
@@ -123,11 +123,10 @@ module.exports.lib = {
             fullnames = new Array(), names = new Array(), buffer;
 
         for(let i = 0, leng = province.neighbors.length; i < leng;i++){
-            buffer = region.provinces.get(province.neighbors[i]) || (() => {
-                const regions = [...map.regions.values()];
-
-                for(let i = 0, leng = regions.length;i < leng;i++)
-                    if((buffer = regions[i][province.neighbors[i]]) !== null)
+            // если в текущей провинции персонажа мы не находим провинцию то ищем в других
+            buffer = region.provinces.get(province.neighbors[i]) != null ? region.provinces.get(province.neighbors[i]) : (() => {
+                for(let region of map.regions.values())
+                    if((buffer = region.provinces.get(province.neighbors[i])) != null)
                         return buffer;
             })();
 
@@ -136,6 +135,7 @@ module.exports.lib = {
 
             if(buffer != null) {
                 fullnames.push("> " + province.neighbors[i] + " региона " + buffer.owner.name);
+
                 names.push(province.neighbors[i].toString());
             }
         }
@@ -148,12 +148,12 @@ module.exports.lib = {
 
     getNameByIdent(type, data){
         switch(type){
-            case "sity":
-                const sitys = global.managers.map.getMap().sitys;
+            case "city":
+                const citys = global.managers.map.getMap().citys;
 
-                for(let i = 0, leng = sitys.length;i < leng;i++)
-                    if(sitys[i].id === data) {
-                        return sitys[i].name;
+                for(let i = 0, leng = citys.length;i < leng;i++)
+                    if(citys[i].id === data) {
+                        return citys[i].name;
                     }
 
                 return null;
@@ -175,8 +175,8 @@ module.exports.lib = {
                             if(includes[i].name.toLowerCase() === data)
                                 return includes[i].id;
                     }
-                } else if (character.map.sity != null) {
-                    let includes = global.managers.map.getDistrictsForSity(character.map.sity, character);
+                } else if (character.map.city != null) {
+                    let includes = global.managers.map.getDistrictsForCity(character.map.city, character);
 
                     if(includes.length > 0) // Если есть что перебирать
                         for(let i = 0, leng = includes.length;i < leng;i++)
@@ -185,12 +185,12 @@ module.exports.lib = {
                 }
         
                 return null;
-            case "sity":
-                const sitys = global.managers.map.getMap().sitys;
+            case "city":
+                const citys = global.managers.map.getMap().citys;
 
-                for(let i = 0, leng = sitys.length;i < leng;i++)
-                    if(sitys[i].name.toLowerCase() === data)
-                        return sitys[i].id;
+                for(let i = 0, leng = citys.length;i < leng;i++)
+                    if(citys[i].name.toLowerCase() === data)
+                        return citys[i].id;
 
                 return null;
         }
@@ -217,10 +217,10 @@ module.exports.lib = {
             return null;
 
         switch(type){
-            case "sity":
-                let sity = global.managers.map.getMap().sitys.filter(e => e.id === data)[0];
+            case "city":
+                let city = global.managers.map.getMap().citys.filter(e => e.id === data)[0];
 
-                return sity ? sity.owner.owner.owner.id + "/" + sity.owner.owner.id + "/" + sity.owner.id + "/" + sity.id : null;
+                return city ? city.owner.owner.owner.id + "/" + city.owner.owner.id + "/" + city.owner.id + "/" + city.id : null;
             case "province":
                 let regions = [...global.managers.map.getMap().regions.values()],
                     province = null;
@@ -239,11 +239,11 @@ module.exports.lib = {
     },
 
     getStartedListEntryes(splitter){
-        const sitys = global.managers.map.getMap().sitys.filter(e => e.started),
+        const citys = global.managers.map.getMap().citys.filter(e => e.started),
                 buffer = new Array();
 
-        for(let i = 0, leng = sitys.length;i < leng;i++)
-            buffer.push((sitys[i].capital ? "★" : "&#12288;") + sitys[i].name + " - население: "+ Utils.to_ru_number_value(sitys[i].population));
+        for(let i = 0, leng = citys.length;i < leng;i++)
+            buffer.push((citys[i].capital ? "★" : "&#12288;") + citys[i].name + " - население: "+ citys[i].population.toLocaleString('ru-RU'));
 
         return buffer.join(splitter);
     },
@@ -262,16 +262,55 @@ module.exports.lib = {
                 break;
         }
 
-        return parseInt((f_p.distance + t_p.distance * 75) * (2 - speed) * global.params.map.distance_multiplier);
+        return parseInt(Math.sqrt(Math.abs(f_p.position.x - t_p.position.x) ** 2 + Math.abs(f_p.position.y - t_p.position.y) ** 2) * 100 * (2 - speed) * global.params.map.distance_multiplier);
     },
     
-    isStartedSity(sity_display){
-        sity_display = (typeof sity_display === "object" ? Object.values(sity_display).join(" ") : sity_display).toLowerCase();
+    getShipCostFor(city1, city2){
+        return parseInt(700 + (Math.sqrt(Math.abs(city1.owner.position.x - city2.owner.position.x) ** 2 + Math.abs(city1.owner.position.y - city2.owner.position.y) ** 2) / global.managers.map.getMap().max_distance_beetwen_citys) * 700);
+    },
+
+    getShipTimeFor(city1, city2){
+        return parseInt(2400000 + (Math.sqrt(Math.abs(city1.owner.position.x - city2.owner.position.x) ** 2 + Math.abs(city1.owner.position.y - city2.owner.position.y) ** 2) / global.managers.map.getMap().max_distance_beetwen_citys) * 4800000);
+    },
+
+    getShippingListFor(character){
+        const citys = global.managers.map.getMap().citys,
+              out = new Array(),
+              names = new Array();
+
+        for(let i = 0, leng = citys.length;i < leng;i++){
+            if(citys[i].port && character.map.city.id != citys[i].id) {
+                out.push('> город ' + citys[i].name + ' прибытие через ' + utils.to_ru_time_value(module.exports.lib.getShipTimeFor(character.map.city, citys[i])))
+
+                names.push(citys[i].name);
+            }
+        }
+
+        return {
+            out: out.join('\n'),
+            names
+        }
+    },
+
+    getSityByName(city_display){
+        city_display = (typeof city_display === "object" ? Object.values(city_display).join(" ") : city_display).toLowerCase();
         
-        const sitys = global.managers.map.getMap().sitys;
+        const citys = global.managers.map.getMap().citys;
         
-        for(let i = 0, leng = sitys.length;i < leng;i++)
-            if(sitys[i].name.toLowerCase() == sity_display)
+        for(let i = 0, leng = citys.length;i < leng;i++)
+            if(citys[i].name.toLowerCase() == city_display)
+                return citys[i];
+        
+        return false;
+    },
+
+    isStartedСity(city_display){
+        city_display = (typeof city_display === "object" ? Object.values(city_display).join(" ") : city_display).toLowerCase();
+        
+        const citys = global.managers.map.getMap().citys;
+        
+        for(let i = 0, leng = citys.length;i < leng;i++)
+            if(citys[i].name.toLowerCase() == city_display && citys[i].started)
                 return true;
         
         return false;

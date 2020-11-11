@@ -69,7 +69,8 @@ const { CommandEmitter }    = require("./src/command"),
       { expand }            = require("./src/vkexpand"),
       { BusinessesManager } = require("./src/managers/game-managers/businesses-manager"),
       { Response, Attachment, SQLAttachment } = require("./src/response"),
-      { StatisticsManager, STAT_TYPE } = require("./src/managers/statistics-manager");
+      { StatisticsManager, STAT_TYPE } = require("./src/managers/statistics-manager"),
+      { GameDataManager } = require("./src/managers/game-managers/gamedata-manager");
 
 void function Main(){
     ((global.managers = new Object()) && (global.managers.pool = new PoolManager(global.params.pools, global.params.connection.mysql)))
@@ -86,15 +87,15 @@ void function Main(){
                 global.managers.statistics.registerStat("errors_scenario", STAT_TYPE.CUMULATIVE, false, 0, null, 'Ошибок сценария');
                 global.managers.statistics.registerStat("errors_managers", STAT_TYPE.CUMULATIVE, false, 0, null, 'Ошибок менеджера');
                 global.managers.statistics.registerStat("iterations_launched", STAT_TYPE.NUMBER, false, 0, null, 'Всего итераций запущено');
-                global.managers.statistics.registerStat("sity_handler_launched", STAT_TYPE.NUMBER, false, 0, null, 'Городских итераций запущено');
-                global.managers.statistics.registerStat("sity_handler_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время выполнения городских итераций', false, 'ms');
-                global.managers.statistics.registerStat("sity_business_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время выполнения итераций бизнеса', false, 'ms');
-                global.managers.statistics.registerStat("total_update_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Общее среднее время обновлений', false, 'ms');
+                global.managers.statistics.registerStat("city_handler_launched", STAT_TYPE.NUMBER, false, 0, null, 'Городских итераций запущено');
+                global.managers.statistics.registerStat("city_handler_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время выполнения городских итераций', false, 'ms');
+                global.managers.statistics.registerStat("city_business_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время выполнения итераций бизнеса', false, 'ms');
+                global.managers.statistics.registerStat("total_update_av_time", STAT_TYPE.AVERAGE, false, 0, null, 'Общее среднее время исполнения цикла обновлений', false, 'ms');
                 global.managers.statistics.registerStat("command_av_handle_time", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время обработки команды', false, 'ms');
                 global.managers.statistics.registerStat("command_av_handle_unit", STAT_TYPE.AVERAGE, false, 0, null, 'Среднее время обработки блока', false, 'ms');
 
-                global.managers.statistics.registerStat("commands_handled_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('messages_received'), 'Команд поступает в час', true);
-                global.managers.statistics.registerStat("commands_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('messages_received'), 'Сообщений поступает в час', true);
+                global.managers.statistics.registerStat("commands_handled_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('commands_handled'), 'Команд поступает в час', true);
+                global.managers.statistics.registerStat("messages_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('messages_received'), 'Сообщений поступает в час', true);
                 global.managers.statistics.registerStat("errors_common_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('errors_common'), 'Общих ошибок, в час', true);
                 global.managers.statistics.registerStat("errors_scenario_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('errors_scenario'), 'Ошибок сценария, в час', true);
                 global.managers.statistics.registerStat("errors_managers_per_hour", STAT_TYPE.UPDATABLE, 1000 * 60 * 60, 0, (manager, index, self) => manager.getFinallyValue('errors_managers'), 'Ошибок менеджера, в час', true);
@@ -119,7 +120,8 @@ void function Main(){
                 global.managers.map         = new MapManager(global.params.map);
                 global.managers.user        = new UserManager(global.params.command_emitter.max_user_connections);
                 global.managers.bind        = new BindManadger(global.params.binder);
-                global.managers.businesses  = new BusinessesManager(global.params.businesses),
+                global.managers.businesses  = new BusinessesManager(global.params.businesses);
+                global.managers.data        = new GameDataManager(global.params.data);
                 global.managers.scenario    = new ScenarioManager(vk);
     
                 // Подгружаем менеджеры
@@ -168,24 +170,13 @@ void function Main(){
 
                     // Если приходит сообщение от пользователя, то обрабатываем его в штатном режиме
                     connection.on('message_new', async ({ message }) => {
-                        const emitter = new CouplerEmitter(vk, message.from_id, message.id);
+                        const emitter = new CouplerEmitter(vk, message.peer_id, message.id);
 
                         // Проверяем есть ли у пользователя, активные обрабатываемые команды.
                         if(global.managers.user.addUserConnection(message.from_id))
                             // Получаем пользователя
                             try {
-                                const user = await GetUser(message.from_id);
-
-                                if(user.banned){
-                                    emitter.reply("Невозможно обработать вашу команду т.к. эта возможность для вас была заблокирована администрацией.");
-                                    
-                                    // Удаляем пользорвателя
-                                    global.managers.user.removeConnection(message.from_id)
-
-                                    return;
-                                }
-
-                                сommand_emitter.handleCommand(message.payload != undefined ? JSON.parse(message.payload) : message.text, user, emitter);
+                                сommand_emitter.handleCommand(message.payload != undefined ? JSON.parse(message.payload) : message.text, await GetUser(message.from_id), emitter);
                             } catch (e) {
                                 emitter.reply("Ведутся профилактические работы. Пожалуйста, попробуйте позже.");
 
@@ -265,15 +256,18 @@ void function Main(){
 
                     switch(msg.type){
                         case "update_manager":
-                            await global.managers[msg.name].update();
+                            if(global.managers[msg.name] && typeof global.managers[msg.name].update === 'function')
+                                await global.managers[msg.name].update();
+                            else
+                                global.common_logger.warn("Cannot find manager for id " + msg.name);
 
-                            reply({
-                                status: 'ok'
-                            });
+                            reply({status: 'ok'});
                         break;
+                        
                         case "statistics":
                             reply(global.managers.statistics.getData());
                         break;
+
                         case "write":
                             if(!Array.isArray(msg.messages))
                                 msg.messages = [msg.messages];

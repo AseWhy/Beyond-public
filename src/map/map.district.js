@@ -42,8 +42,8 @@ module.exports.District = class District {
         }
     }
 
-    getOptionsForSity(sity, character){
-        return (sity = new Heap({sity, character})) && this.includes.filter(e => e.condition.result(sity));
+    getOptionsForCity(city, character){
+        return (city = new Heap({city, character})) && this.includes.filter(e => e.condition.result(city));
     }
 
     get(id){

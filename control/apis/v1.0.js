@@ -1,7 +1,7 @@
 const { createHash } = require("crypto"),
         sql = require("sql-bricks"),
         utils = require("../../src/utils"),
-        { API } = require("../web_api_interface");
+        { API, PERMISSIONS } = require("../web_api_interface");
 
 module.exports = class Api extends API {
     constructor(manager){
@@ -9,8 +9,11 @@ module.exports = class Api extends API {
 
         this.addSubApi('businesses', './v1.0/businesses.js');
         this.addSubApi('characters', './v1.0/characters.js');
+        this.addSubApi('origins', './v1.0/origins.js');
+        this.addSubApi('binds', './v1.0/binds.js');
         this.addSubApi('users', './v1.0/users.js');
         this.addSubApi('items', './v1.0/items.js');
+        this.addSubApi('super', './v1.0/super.js');
         this.addSubApi('logs', './v1.0/logs.js');
         this.addSubApi('map', './v1.0/map.js');
         this.addSubApi('web', './v1.0/web.js');
@@ -85,7 +88,7 @@ module.exports = class Api extends API {
                     const response = await _.account(body.token, "token", body.params || ['id', 'display_name', 'role'])
 
                     if(response.status !== "ok") {
-                        if(response.code === 0x0 || response.code === 0x3)
+                        if(response.code === 0x0 || response.code === 0x3 || response.code === 0x4)
                             res.status(403);
                         else if(response.code === 0x1 || response.code === 0x2)
                             res.status(500);
@@ -105,7 +108,13 @@ module.exports = class Api extends API {
             break;
             case 'update': // Обновляет выбранный менеджер
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.UPDATE)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -138,7 +147,13 @@ module.exports = class Api extends API {
             break;
             case "web":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.WEB_INTERFACE)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -166,7 +181,13 @@ module.exports = class Api extends API {
             break;
             case "logs":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.LOGS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -194,7 +215,13 @@ module.exports = class Api extends API {
             break;
             case "items":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.ITEMS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -222,7 +249,13 @@ module.exports = class Api extends API {
             break;
             case "statistics":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.STATISTICS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -270,7 +303,13 @@ module.exports = class Api extends API {
             break;
             case "businesses":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.BUSINESSES)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -298,7 +337,13 @@ module.exports = class Api extends API {
             break;
             case "users":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.USERS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -326,7 +371,13 @@ module.exports = class Api extends API {
             break;
             case "characters":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.CHARACTERS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -354,7 +405,13 @@ module.exports = class Api extends API {
             break;
             case "mailing":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.MAILING)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -392,7 +449,13 @@ module.exports = class Api extends API {
             break;
             case "map":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.MAP)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -421,7 +484,13 @@ module.exports = class Api extends API {
             break;
             case "actions":
                 try {
-                    let responce = await _.account(body.token, "token", ['id']);
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.ACTIONS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
 
                     if(responce.status !== "ok"){
                         if(responce.code === 0x0 || responce.code === 0x3)
@@ -455,6 +524,114 @@ module.exports = class Api extends API {
                         message: "Token verification error"
                     }))
                 }
+            break;
+            case "origins":
+                try {
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.ORIGINS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
+
+                    if(responce.status !== "ok"){
+                        if(responce.code === 0x0 || responce.code === 0x3)
+                            res.status(403);
+                        else if(responce.code === 0x1 || responce.code === 0x2)
+                            res.status(500);
+
+                        responce.code = undefined;
+                        responce.message = "Token verification error"
+                        
+                        res.end(JSON.stringify(responce));
+
+                        return;
+                    }
+
+                    await super.dropTo('origins', req, res, responce)  // Передаем управление интерфейсу происхождений
+                } catch (e) {
+                    global.web_logger.error(e);
+
+                    res.status(500).end(JSON.stringify({
+                        status: "error",
+                        message: "Token verification error"
+                    }))
+                }
+            break;
+            case "binds":
+                try {
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(!_.manager.hasPermission(responce, PERMISSIONS.BINDS)){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
+
+                    if(responce.status !== "ok"){
+                        if(responce.code === 0x0 || responce.code === 0x3)
+                            res.status(403);
+                        else if(responce.code === 0x1 || responce.code === 0x2)
+                            res.status(500);
+
+                        responce.code = undefined;
+                        responce.message = "Token verification error"
+                        
+                        res.end(JSON.stringify(responce));
+
+                        return;
+                    }
+
+                    await super.dropTo('binds', req, res, responce)  // Передаем управление интерфейсу происхождений
+                } catch (e) {
+                    global.web_logger.error(e);
+
+                    res.status(500).end(JSON.stringify({
+                        status: "error",
+                        message: "Token verification error"
+                    }))
+                }
+            break;
+            case "super":
+                try {
+                    let responce = await _.account(body.token, "token", ['id', 'display_name']);
+
+                    if(responce.permissions != -0x1){
+                        res.end(JSON.stringify({ status: "error", message: "Access denied" }))
+
+                        return;
+                    }
+
+                    if(responce.status !== "ok"){
+                        if(responce.code === 0x0 || responce.code === 0x3)
+                            res.status(403);
+                        else if(responce.code === 0x1 || responce.code === 0x2)
+                            res.status(500);
+
+                        responce.code = undefined;
+                        responce.message = "Token verification error"
+                        
+                        res.end(JSON.stringify(responce));
+
+                        return;
+                    }
+
+                    await super.dropTo('super', req, res, responce)  // Передаем управление интерфейсу пользователей
+                } catch (e) {
+                    global.web_logger.error(e);
+
+                    res.status(500).end(JSON.stringify({
+                        status: "error",
+                        message: "Token verification error"
+                    }))
+                }
+            break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + body.function[0]
+                }))
             break;
         }
     }
@@ -503,13 +680,20 @@ module.exports = class Api extends API {
                 let results = await _.manager.query('admin', sql.select("*").from('access').where(sql.like('token', auth)).toString())
 
                 if(results.length !== 0 && Date.now() < results[0].valid_to) {
-                    results = await _.manager.query('admin', sql.select(...fields_c).from('users').where(sql.like('login', results[0].owner)).toString())
-                    
+                    results = await _.manager.query('admin', sql.select(...fields_c.map(e => sql('`users`.' + e)), '`roles`.`permissions`').from('users', 'roles').where(sql.and(sql.like('`users`.`role`', sql('`roles`.`rolename`')), sql.like('`users`.`login`', results[0].owner))).toString())
+
                     if(results.length !== 0)
-                        return {
-                            status: "ok",
-                            ...results[0]
-                        };
+                        if(_.manager.hasPermission(results[0], PERMISSIONS.LOGIN))
+                            return {
+                                status: "ok",
+                                ...results[0]
+                            };
+                        else
+                            return {
+                                status: "error",
+                                code: 0x4,
+                                message: "Access denied"
+                            };
                     else
                         return {
                             status: "error",
@@ -666,7 +850,7 @@ module.exports = class Api extends API {
     async actions(from, to){
         try {
             const actions = await this.manager.query('admin', sql.select('owner', 'id', 'description').from('actions').where(sql.between('id', from, to)).toString()), 
-                  users = new Array(), users_out = new Array(), count = (await this.manager.query('admin', 'SELECT COUNT(id) as total FROM `actions` WHERE 1'))[0];
+                  users = new Array(), users_out = new Array(), count = (await this.manager.query('admin', 'SELECT MAX(`id`) as total FROM `actions`'))[0];
 
             for(let i = 0, leng = actions.length;i < leng;i++)
                 if(!users.includes(actions[i].owner)) {

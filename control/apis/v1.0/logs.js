@@ -38,6 +38,12 @@ module.exports = class Api extends API {
                     }))
                 }
             break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + req.body.function[0]
+                }))
+            break;
         }
     }
 

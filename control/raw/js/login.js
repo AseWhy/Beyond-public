@@ -12,15 +12,9 @@ window.addEventListener("load", async () => {
             if(window.location.hash === "")
                 buttons[0].click({target: buttons[0]});
             else {
-                const target = window.location.hash.substring(1);
+                const target = window.location.hash.substring(1).split('~')[0];
 
-                for(let i = 0, leng = buttons.length;i < leng;i++) {
-                    if(utils.to_url_safe(buttons[i].innerText.toLowerCase()) == target) {
-                        buttons[i].click({target: buttons[i]});
-
-                        break;
-                    }
-                }
+                window.loadPage(target);
             }
         } catch (e) {
             buttons[0].click({target: buttons[0]})

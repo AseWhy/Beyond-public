@@ -4,12 +4,30 @@ const sql = require('sql-bricks'),
 module.exports = class Api extends API {
     constructor(manager){
         super(manager, false, "POST");
+
+        this.update_waiter = null;
+        this.waiter_timeout = 1000 * 60 * 15 // 15 minutes
+    }
+
+    update(){
+        const _ = this;
+
+        if(_.update_waiter)
+            clearTimeout(_.update_waiter)
+
+        _.update_waiter = setTimeout(() => {
+            _.update_waiter = null;
+
+            _.manager.requestUpdate('businesses');
+        }, _.waiter_timeout)
     }
 
     async handle(req, res, user){
         const _ = this;
 
         req.body.function.splice(0, 1);
+
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
         switch(req.body.function[0]){
             case "get":
@@ -48,6 +66,8 @@ module.exports = class Api extends API {
                     }
 
                     res.end(JSON.stringify(results));
+
+                    this.update();
                 } catch (e){
                     global.web_logger.error(e);
 
@@ -73,6 +93,8 @@ module.exports = class Api extends API {
                     }
 
                     res.end(JSON.stringify(results));
+
+                    this.update();
                 } catch (e){
                     global.web_logger.error(e);
 
@@ -98,6 +120,8 @@ module.exports = class Api extends API {
                     }
 
                     res.end(JSON.stringify(results));
+
+                    this.update();
                 } catch (e){
                     global.web_logger.error(e);
 
@@ -106,6 +130,12 @@ module.exports = class Api extends API {
                         message: "Error while excecutiong request"
                     }))
                 }
+            break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + req.body.function[0]
+                }))
             break;
         }
     }
@@ -232,7 +262,7 @@ module.exports = class Api extends API {
             }
 
             if(data.data != null){
-                if(typeof data.data === 'object' && (size = this.manager.roughSizeOfObject(data.data))< 25600)
+                if(typeof data.data === 'object' && (size = this.manager.roughSizeOfObject(data.data)) < 25600)
                     formated.data = JSON.stringify(data.data);
                 else
                     return {

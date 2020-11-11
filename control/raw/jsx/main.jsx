@@ -6,12 +6,37 @@ async function loadMiniprofile(){
 
     if(window.api.session) {
         try {
-            const user = await window.api.getUser()
+            const user = await window.api.getUser();
 
             u_avatar.src = '/avatars/' + user.id;
-            
             u_name.innerText = user.display_name;
             u_role.innerText = user.role + "#" + user.id;
+
+            api.session.user = user;
+
+            let buttons = document.getElementsByClassName("button"), perms;
+
+            for(let i = 0,leng = buttons.length;i < leng;i++){
+                perms = buttons[i].getAttribute('perm').split(',');
+
+                if(user.permissions != -1)
+                    for(let j = 0, j_leng = perms.length; j < j_leng; j++)
+                        if(perms[j] != 'SUPER') {
+                            if((user.permissions & window.config.permissions[perms[j]]) === 0){
+                                perms = false;
+
+                                break;
+                            }
+                        } else {
+                            perms = false;
+
+                            break;
+                        }
+
+                if(perms){
+                    buttons[i].style.display = 'block';
+                }
+            }
 
             if(m_cont.classList.contains("waiting_login"))
                 m_cont.classList.remove("waiting_login");
@@ -71,14 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for(let i = 0,leng = buttons.length;i < leng;i++)
         buttons[i].onclick = e => {
             if(!loading){
-                window.location.hash = utils.to_url_safe(e.target.innerText.toLowerCase());
-
-                for(let j = 0;j < leng;j++){
-                    buttons[j].classList.remove("active");
-
-                    if(buttons[j] === e.target)
-                        buttons[j].classList.add("active")
-                }
+                window.location.hash = e.target.getAttribute('data-page');
                 
                 if(window.api.session)
                     window.loadPage(e.target.getAttribute("data-page"))

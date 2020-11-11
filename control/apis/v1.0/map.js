@@ -38,42 +38,23 @@ module.exports = class Api extends API {
         
         req.body.function.splice(0, 1);
 
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
         switch(req.body.function[0]){
-            case "set":
-                req.body.function.splice(0, 1);
-
-                switch(req.body.function[0]){
-                    case undefined:
-                        try {
-                            _.is_occupied = true;
-
-                            _.manager.addAction(user.id, "Server map operation. Map has been installed");
-
-                            data = await _.setMap(req.body.map, data => res.write(JSON.stringify(data)));
-
-                            if(data.status !== "ok") {
-                                res.status(500);
-                                
-                                data.code = undefined;
-                            }
-
-                            res.end(JSON.stringify(data));
-
-                            _.is_occupied = false;
-
-                            _.update();
-                        } catch(e){
-                            global.web_logger.error("Error when setting map", e);
-
-                            _.is_occupied = false;
-
-                            res.status(500).end(JSON.stringify({
-                                status: "error",
-                                message: "Internal server error."
-                            }));
+            case "provinces":
+                switch(req.body.function[1]){
+                    case "get":
+                        data = await _.getProvinces(req.body.owner);
+                        
+                        if(data.status !== "ok"){
+                            res.status(500);
+                            
+                            data.code = undefined;
                         }
+
+                        res.end(JSON.stringify(data));
                     break;
-                    case "provinces":
+                    case "set":
                         try {
                             _.is_occupied = true;
 
@@ -103,7 +84,28 @@ module.exports = class Api extends API {
                             }));
                         }
                     break;
-                    case "districts":
+                    default: 
+                        res.status(403).end(JSON.stringify({
+                            status: "error",
+                            message: "Unknown root function " + req.body.function[1]
+                        }))
+                    break;
+                }
+            break;
+            case "districts":
+                switch(req.body.function[1]){
+                    case "get":
+                        data = await _.getDistricts();
+                        
+                        if(data.status !== "ok"){
+                            res.status(500);
+                            
+                            data.code = undefined;
+                        }
+
+                        res.end(JSON.stringify(data));
+                    break;
+                    case "set":
                         try {
                             _.is_occupied = true;
 
@@ -143,13 +145,17 @@ module.exports = class Api extends API {
                             }));
                         }
                     break;
+                    default: 
+                        res.status(403).end(JSON.stringify({
+                            status: "error",
+                            message: "Unknown root function " + req.body.function[1]
+                        }))
+                    break;
                 }
             break;
-            case "get":
-                req.body.function.splice(0, 1);
-
-                switch(req.body.function[0]){
-                    case undefined:
+            case "map":
+                switch(req.body.function[1]){
+                    case "get":
                         data = await _.getMap(req.body.id || global.config.map.common_id);
 
                         if(data.status !== "ok"){
@@ -160,29 +166,49 @@ module.exports = class Api extends API {
 
                         res.end(JSON.stringify(data));
                     break;
-                    case "provinces":
-                        data = await _.getProvinces(req.body.owner);
-                        
-                        if(data.status !== "ok"){
-                            res.status(500);
-                            
-                            data.code = undefined;
-                        }
+                    case "set":
+                        try {
+                            _.is_occupied = true;
 
-                        res.end(JSON.stringify(data));
+                            _.manager.addAction(user.id, "Server map operation. Map has been installed");
+
+                            data = await _.setMap(req.body.map, data => res.write(JSON.stringify(data)));
+
+                            if(data.status !== "ok") {
+                                res.status(500);
+                                
+                                data.code = undefined;
+                            }
+
+                            res.end(JSON.stringify(data));
+
+                            _.is_occupied = false;
+
+                            _.update();
+                        } catch(e){
+                            global.web_logger.error("Error when setting map", e);
+
+                            _.is_occupied = false;
+
+                            res.status(500).end(JSON.stringify({
+                                status: "error",
+                                message: "Internal server error."
+                            }));
+                        }
                     break;
-                    case "districts":
-                        data = await _.getDistricts();
-                        
-                        if(data.status !== "ok"){
-                            res.status(500);
-                            
-                            data.code = undefined;
-                        }
-
-                        res.end(JSON.stringify(data));
+                    default: 
+                        res.status(403).end(JSON.stringify({
+                            status: "error",
+                            message: "Unknown root function " + req.body.function[1]
+                        }))
                     break;
                 }
+            break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + req.body.function[0]
+                }))
             break;
         }
     }
@@ -416,18 +442,30 @@ module.exports = class Api extends API {
                             code: 0x1,
                             message: "Format error. The neighbors field must be an array instance."
                         }
+                    
+                    if(b[j].position)
+                        b[j].position = JSON.stringify(b[j].position);
+                    else {
+                        console.log(b[j].position)
 
-                    if(b[j].sity)
-                        b[j].sity = JSON.stringify(b[j].sity);
+                        return {
+                            status: "error",
+                            code: 0x2,
+                            message: "Format error. The position field must be an point instance."
+                        }
+                    }
+
+                    if(b[j].city)
+                        b[j].city = JSON.stringify(b[j].city);
                     else
-                        b[j].sity = null;
+                        b[j].city = null;
 
                     if(b[j].gfx != null && typeof b[j].gfx === 'string')
                         b[j].gfx = sql(b[j].gfx.substring(0, 2) != '0x' ? '0x' + b[j].gfx : b[j].gfx);
                     else
                         return {
                             status: "error",
-                            code: 0x2,
+                            code: 0x3,
                             message: "Format error. The gfx field must have a string type."
                         }
                 }
@@ -450,7 +488,7 @@ module.exports = class Api extends API {
             } catch (e) {
                 return {
                     status: "error",
-                    code: 0x3,
+                    code: 0x4,
                     message: "Error while writing provinces"
                 }
             }
@@ -461,7 +499,7 @@ module.exports = class Api extends API {
         } catch (e) {
             return {
                 status: "error",
-                code: 0x4,
+                code: 0x5,
                 message: "Error while executing request"
             }
         }
@@ -487,9 +525,12 @@ module.exports = class Api extends API {
                         total: leng
                     });
                 
-                await _.setProvinces(info[i].provinces, info[i].id, progress);
+                let result = await _.setProvinces(info[i].provinces, info[i].id, progress);
                 
-                await _.manager.query('map', sql.insert('regions', { id: info[i].id, country: info[i].country, name: info[i].name, color: info[i].color, spawn: JSON.stringify(info[i].spawn), description: info[i].description != undefined ? info[i].description : null, owner: map_id, gfx: info[i].gfx != undefined ? sql(info[i].gfx.substring(0, 2) !== '0x' ? '0x' + info[i].gfx : info[i].gfx) : null }).toString());
+                if(result.status === 'ok')
+                    await _.manager.query('map', sql.insert('regions', { id: info[i].id, country: info[i].country, name: info[i].name, color: info[i].color, spawn: JSON.stringify(info[i].spawn), description: info[i].description != undefined ? info[i].description : null, owner: map_id, gfx: info[i].gfx != undefined ? sql(info[i].gfx.substring(0, 2) !== '0x' ? '0x' + info[i].gfx : info[i].gfx) : null }).toString());
+                else
+                    return result;
             }
 
             return {
@@ -554,13 +595,13 @@ module.exports = class Api extends API {
         const _ = this;
 
         try {
-            const results = await _.manager.query('map', sql.select('id', 'type', 'neighbors', 'geometry', 'borders', 'sity').from('provinces').where(sql.like('owner', reg_id)).toString())
+            const results = await _.manager.query('map', sql.select('id', 'type', 'neighbors', 'geometry', 'borders', 'city').from('provinces').where(sql.like('owner', reg_id)).toString())
 
             for(let i = 0, leng = results.length;i < leng;i++) {
                 results[i].neighbors = JSON.parse(results[i].neighbors);
                 results[i].geometry = JSON.parse(results[i].geometry);
                 results[i].borders = JSON.parse(results[i].borders);
-                results[i].sity = results[i].sity ? JSON.parse(results[i].sity) : null;
+                results[i].city = results[i].city ? JSON.parse(results[i].city) : null;
             }
 
             return {

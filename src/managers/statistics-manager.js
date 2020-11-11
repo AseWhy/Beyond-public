@@ -29,15 +29,18 @@ class Stat {
     }
 
     setData(data){
-        if(this.stack.length < this.manager.max_stack_length){
+        if(this.stack.length + 1 < this.manager.max_stack_length){
             if(this.stack.length !== 0)
-                this.stack.push(this.data);
+                if(this.type === module.exports.STAT_TYPE.AVERAGE)
+                    this.stack.push(this.data / this.count);
+                else
+                    this.stack.push(this.data);
             else
                 this.stack.push(this.type === module.exports.STAT_TYPE.AVERAGE ? data / this.count : data);
 
             this.data = data;
         } else {
-            this.stack.splice(0, this.manager.max_stack_length - this.stack.length);
+            this.stack.splice(0, this.stack.length - this.manager.max_stack_length + 1);
 
             if(this.type === module.exports.STAT_TYPE.AVERAGE)
                 this.stack.push(this.data / this.count);
@@ -65,7 +68,7 @@ module.exports.StatisticsManager = class StatisticsManager {
 
         _.lables = new Map();
         _.loaded = true;
-        _.stackl = config.max_stack_length;
+        _.max_stack_length = config.max_stack_length;
         _.updater = this.update.bind(this);
         _.started = Date.now();
 
@@ -155,7 +158,7 @@ module.exports.StatisticsManager = class StatisticsManager {
 
         return {
             started: this.started,
-            stack: this.stackl,
+            stack: this.max_stack_length,
             stats: result
         };
     }

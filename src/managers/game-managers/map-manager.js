@@ -1,5 +1,4 @@
-const { GetCharacterFromPattern, GetUserFromPattern } = require("../../ccc/ccc.core"),
-      { District } = require("../../map/map.district"),
+const { District } = require("../../map/map.district"),
       { Heap } = require("../../pattern"),
       { EventManager } = require("../event-manager"),
       { Map } = require("../../map/map.main"),
@@ -19,11 +18,11 @@ module.exports.MapManager = class MapManager extends EventManager {
 
         const _ = this;
 
-        _.common_map        = config.common_id;
-        _.updater_namespace = config.updater_namespace || 'iua_common_districts';
-        _.maps              = new global.Map();
-        _.districts         = new global.Map();
-        _.loaded            = false;
+        _.common_map            = config.common_id;
+        _.updater_namespace     = config.updater_namespace || 'iua_common_districts';
+        _.maps                  = new global.Map();
+        _.districts             = new global.Map();
+        _.loaded                = false;
 
         global.common_logger.log("Loading the map manager");
 
@@ -97,10 +96,10 @@ module.exports.MapManager = class MapManager extends EventManager {
             (event => {
                 global.managers.update.addUpdater(namespace, event.interval, e => e[1].map.stack.length > 4 && event.paths.includes(e[1].map.stack.slice(4).join('/')), async (wp, data) => {
                     if(data.length != 0) {
-                        let start = performance.now();
+                        const start = performance.now();
         
                         for(let i = 0, leng = data.length, current;i < leng;i++){
-                            current = new QueryData(PushedCommand.getEmpty(), data[i][0], null, ['no-commit', 'no-edit']).setCharacter(data[i][1]);
+                            current = new QueryData(PushedCommand.getEmpty(), data[i][0], ['no-commit', 'no-edit']).setCharacter(data[i][1]);
 
                             for(let j = 0, j_leng = event.targets.length;j < j_leng;j++){
                                 if(event.targets[j].path === data[i][1].map.district[data[i][1].map.district.length - 1].path){
@@ -117,16 +116,19 @@ module.exports.MapManager = class MapManager extends EventManager {
                             }
                         }
             
-                        global.managers.statistics.updateStat('sity_handler_av_time', performance.now() - start)
+                        global.managers.statistics.updateStat('city_handler_av_time', performance.now() - start)
                     }
                 })
             })(event);
 
-        global.managers.statistics.updateStat('sity_handler_launched', events.size)
+        global.managers.statistics.updateStat('city_handler_launched', events.size)
     }
 
     async update(){
         try {
+            this.maps.clear();
+            this.districts.clear();
+
             const worlds = await global.managers.pool.sql("map", sql.select('*').from('worlds').toString());
                 
             global.common_logger.log("Updating of " + worlds.length + " maps started");
@@ -165,7 +167,7 @@ module.exports.MapManager = class MapManager extends EventManager {
                     global.common_logger.log(districts[i].id + " successfully initialized");
                 }
 
-                _.updateWaiter(this.updater_namespace, events);
+                this.updateWaiter(this.updater_namespace, events);
 
                 global.common_logger.popIndent();
 
@@ -177,6 +179,8 @@ module.exports.MapManager = class MapManager extends EventManager {
             global.common_logger.log("MapManager updated successfully");
 
         } catch (e) {
+            global.common_logger.error(e);
+
             global.managers.statistics.updateStat('errors_managers', 1)
         }
     }
@@ -202,8 +206,8 @@ module.exports.MapManager = class MapManager extends EventManager {
         return null;
     }
 
-    getDistrictsForSity(sity, character){
-        return (sity = new Heap({sity, character})) && [...this.districts.values()].filter(e => e.condition.result(sity));
+    getDistrictsForCity(city, character){
+        return (city = new Heap({city, character})) && [...this.districts.values()].filter(e => e.condition.result(city));
     }
 
     getMap(id){

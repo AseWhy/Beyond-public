@@ -1,4 +1,4 @@
-window.addEntryPage("characters", (exports, emitter) => {
+window.addEntryPage("characters", window.config.permissions.CHARACTERS, (exports, emitter) => {
     const CommandNumberPattern  = /^[-+]?([0-9]*\.[0-9]+|[0-9]+)$/m;
 
     function clone(obj){
@@ -10,7 +10,7 @@ window.addEntryPage("characters", (exports, emitter) => {
             super(props)
 
             this.state = {
-                waiting: false,
+                waiting: true,
                 characters: new Array(),
                 current: 0,
                 search: ''
@@ -22,7 +22,22 @@ window.addEntryPage("characters", (exports, emitter) => {
                 _.search();
             }) && this;
 
-            _.search();
+            await _.search();
+
+            const target = window.location.hash.split('~');
+
+            if(target[1] != null) {
+                const character = this.getCharacterById(target[1]);
+
+                if(target != null){
+                    this.setState({waiting: false, current: character.index});
+
+                    emitter.emit('UPDATE_SELECTION', this.state.characters[character.index]);
+                } else {
+                    emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Не удалось найти персонажа с id ' + target[1], 'error');
+                }
+            } else
+                this.setState({waiting: false});
         }
 
         async search(){
@@ -57,6 +72,17 @@ window.addEntryPage("characters", (exports, emitter) => {
             emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Успешно!', 'tip');
             
             this.setState({waiting: false});
+        }
+
+        getCharacterById(id){
+            for(let i = 0, leng = this.state.characters.length; i < leng; i++){
+                if(this.state.characters[i].id == id){
+                    return {
+                        character: this.state.characters[i],
+                        index: i
+                    };
+                }
+            }
         }
 
         showInfo(e){
@@ -133,7 +159,7 @@ window.addEntryPage("characters", (exports, emitter) => {
             } catch (e) {
                 console.error(e);
 
-                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Обишка при сохранении.', 'error');
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Ошибка при сохранении.', 'error');
             }
         }
 
@@ -183,6 +209,17 @@ window.addEntryPage("characters", (exports, emitter) => {
             this.setState({character: this.state.character});
         }
 
+        editExperience(e){
+            const buffer = parseInt(e.target.value);
+
+            if(!isNaN(buffer) || e.target.value === '') {
+                this.state.character.experience[e.target.getAttribute('subtype')][e.target.name] = buffer;
+
+                this.setState({character: this.state.character});
+            } else
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Значение опыта для ' + e.target.name + " должно быть числом", 'error');
+        }
+
         editCharacter(e){
             switch(e.target.name){
                 case 'map':
@@ -204,32 +241,33 @@ window.addEntryPage("characters", (exports, emitter) => {
 
         editData(e){
             if(e.target.name == 'edit') {
-                this.state.character.data[e.target.value] = this.state.character.data[e.target.getAttribute("old")];
-
-                delete this.state.character.data[e.target.getAttribute("old")];
-
-                this.setState({character: this.state.character});
-
-                return;
-            }
-
-            if(e.target.value === 'true'){
-                this.state.character.data[e.target.name] = true;
-            } else if(e.target.value === 'false'){
-                this.state.character.data[e.target.name] = false;
-            } else if(e.target.value === 'null'){
-                this.state.character.data[e.target.name] = null;
-            } else if(CommandNumberPattern.test(e.target.value)){
-                this.state.character.data[e.target.name] = parseFloat(e.target.value);
+                this.state.character.data[e.target.value] = utils.renameProperty(this.state.character.data, e.target.getAttribute("old"), e.target.value);
             } else {
-                this.state.character.data[e.target.name] = e.target.value;
+                switch(e.target.value){
+                    case "true":
+                        this.state.character.data[e.target.name] = true;
+                    break;
+                    case "false":
+                        this.state.character.data[e.target.name] = false;
+                    break;
+                    case "null":
+                        this.state.character.data[e.target.name] = null;
+                    break;
+                    default:
+                        if(CommandNumberPattern.test(e.target.value)){
+                            this.state.character.data[e.target.name] = parseFloat(e.target.value);
+                        } else {
+                            this.state.character.data[e.target.name] = e.target.value;
+                        }
+                    break;
+                }
             }
 
             this.setState({character: this.state.character});
         }
 
         addData(e){
-            this.state.character.data[Date.now().toString()] = '';
+            this.state.character.data[''] = '';
 
             this.setState({character: this.state.character});
         }
@@ -238,6 +276,24 @@ window.addEntryPage("characters", (exports, emitter) => {
             delete this.state.character.data[e.target.getAttribute('target')];
 
             this.setState({character: this.state.character});
+        }
+
+        async removeCharacter(){
+            if(window.confirm('Вы уверены что хотите удалить ' + this.state.character.name)){
+                await api.characters.remove(this.state.character.id);
+
+                this.setState({character: null})
+
+                emitter.emit('UPDATE_LIST_ACTION');
+
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Успешно удален!', 'tip');
+            }
+        }
+
+        goToUser(){
+            window.location.hash = 'users~' + this.state.character.owner;
+
+            window.loadPage('users');
         }
 
         render(){
@@ -275,6 +331,8 @@ window.addEntryPage("characters", (exports, emitter) => {
                                     <textarea ref={e => _.update_needs.push(e)} title='Текущее местоположение' name='map' class="auto_message" value={_.state.character.map.join('/') ?? ''} placeholder='В бесконечном пространстве вселенной...' onChange={_.editCharacter.bind(_)}>
 
                                     </textarea>
+
+                                    <img class='map-tip' src={window.api.getPathToApiResource('map', {province: _.state.character.map[2]})}/>
                                 </div>,
                                 <div class='auto-label'>
                                     Здоровье персонажа
@@ -345,11 +403,9 @@ window.addEntryPage("characters", (exports, emitter) => {
 
                                                 if(data.length > 0)
                                                     return data.map(e => {
-                                                        if(
-                                                            typeof _.state.character.data[e] != 'object'
-                                                        )
+                                                        if(typeof _.state.character.data[e] != 'object')
                                                             return <div class='auto-label'>
-                                                                <input type="text" name="edit" class='label-editor-common' old={e} value={e} onChange={_.editData.bind(_)}/>
+                                                                <input type="text" name="edit" class='label-editor-common' old={e} value={e} placeholder='Дайте название полю' onChange={_.editData.bind(_)}/>
                 
                                                                 <textarea ref={e => _.update_needs.push(e)} name={e} class="auto_message" value={_.state.character.data[e] ?? ''} placeholder='null' onChange={_.editData.bind(_)}>
                 
@@ -361,7 +417,7 @@ window.addEntryPage("characters", (exports, emitter) => {
                                                             </div>
                                                         else
                                                             return <div class='auto-label'>
-                                                                <input type="text" name="edit" class='label-editor-common' old={e} value={e} onChange={_.editData.bind(_)}/>
+                                                                <input type="text" name="edit" class='label-editor-common' old={e} value={e} placeholder='Дайте название полю' onChange={_.editData.bind(_)}/>
                 
                                                                 <textarea disable='true' ref={e => _.update_needs.push(e)} name={e} class="auto_message" value={JSON.stringify(_.state.character.data[e], null, 4) ?? ''} placeholder='null'>
                 
@@ -388,12 +444,57 @@ window.addEntryPage("characters", (exports, emitter) => {
                                         Добавить данные
                                     </button>
                                 </div>,
+                                <div class='includes-base-cont'>
+                                    <div class='includes-header'>Данные опыта</div>
+
+                                    {
+                                        (() => {
+                                            if(_.state.character.experience != null){
+                                                const experience = Object.entries(_.state.character.experience);
+
+                                                if(experience.length > 0)
+                                                    return experience.map(e => 
+                                                        [
+                                                            <div class="sub-header">{e[0]}</div>,
+                                                            <div class="sub-section">
+                                                                {
+                                                                    Object.keys(e[1]).map(d => 
+                                                                        <div class='auto-label'>
+                                                                            {d}
+            
+                                                                            <input type="number" class='auto-number' value={_.state.character.experience[e[0]][d] ?? '0'} subtype={e[0]} name={d} onChange={_.editExperience.bind(_)}/>
+                                                                        </div>    
+                                                                    )
+                                                                }
+                                                            </div>
+                                                        ]
+                                                    )
+                                                else
+                                                    return <div class='includes-no-data'>
+                                                        Кажется этот персонаж не опытен ни в чем
+                                                    </div>
+                                            } else {
+                                                return <div class='includes-no-data'>
+                                                    Кажется этот персонаж не опытен ни в чем
+                                                </div>
+                                            }
+                                        })()
+                                    }
+                                </div>,
                                 (() => {
                                     if(_.hasChanges())
                                         return <button class='button-statement' onClick={_.svComp.bind(_)}>
                                             Сохранить {_.state.character.name + "#" + _.state.character.id}
                                         </button>
-                                })()
+                                })(),
+                                (() => {
+                                    return <button class='button-statement' onClick={_.goToUser.bind(_)}>
+                                        Перейти к владельцу персонажа
+                                    </button>
+                                })(),
+                                <button class='button-danger' onClick={_.removeCharacter.bind(_)}>
+                                    Удалить {_.state.character.name}
+                                </button>
                             ]
                         }
                     })()

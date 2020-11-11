@@ -93,3 +93,7 @@ table.auto-table {
 .checkbox-common-cont {
     padding: 0.25em;
 }
+
+.user-area-editor > button {
+    margin: 0.25em 0;
+}

@@ -26,20 +26,10 @@ module.exports.PushedCommand = class PushedCommand {
                 this.header = string[0].toLowerCase();
 
                 for(let i = 1, leng = string.length; i < leng;i++){
-                    switch(string[i]){
-                        case "да":
-                            this.data.push(true)
-                            continue;
-                        case "нет":
-                            this.data.push(false)
-                            continue;
-                        default:
-                            if(CommandNumberPattern.test(string[i])){
-                                this.data.push(parseFloat(string[i]));
-                            } else {
-                                this.data.push(string[i])
-                            }
-                            continue;
+                    if(CommandNumberPattern.test(string[i])){
+                        this.data.push(parseFloat(string[i]));
+                    } else {
+                        this.data.push(string[i])
                     }
                 }
             } else {

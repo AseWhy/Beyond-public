@@ -1,23 +1,21 @@
-const { performance } = require("perf_hooks");
 const { Response, Keyboard, Button, Attachment, SQLAttachment }         = require("./response"),
       { QueryData }                                                     = require("./querydata"),
       { CouplerEmitter }                                                = require("./coupler.emitter"),
       { GetCharacter }                                                  = require("./ccc/ccc.core"),
       { MessagePattern, ExpressionPattern, ExcecutionPattern, Heap }    = require("./pattern"),
       { join }                                                          = require("path"),
+      { performance }                                                   = require("perf_hooks"),
       utils                                                             = require("./utils"),
       sql                                                               = require('sql-bricks');
-
+      
 function getEntry(entry, importer, parent){
     switch(entry.type){
         case "write":
             return new module.exports.CommandWriteEntry(entry, importer);
-        case "save":
-            return new module.exports.CommandSaveEntry(entry, importer);
-        case "typing":
-            return new  module.exports.CommandTypingEntry(entry, importer);
         case "query":
             return new module.exports.CommandQueryEntry(entry, importer);
+        case "save":
+            return new module.exports.CommandSaveEntry(entry, importer);
         case "scenario":
             return new module.exports.CommandScenarioEntry(entry, importer);
         case "excecutor":
@@ -32,25 +30,15 @@ function getEntry(entry, importer, parent){
             return new module.exports.CommandConfirmationEntry(entry, importer, parent);
         case "confirmation-ok":
             return new module.exports.CommandConfirmationOkEntry(entry, importer, parent);
-        case "game-data":
-            return new module.exports.GameDataEntry(entry, importer, parent);
+        case "change":
+            return new module.exports.CommandChangeEntry(entry, importer);
+        case "user":
+            return new module.exports.CommandUserEntry(entry, importer);
         case "character":
             if(parent.use_character)
                 return new module.exports.CommandCharacterEntry(entry, importer);
             else
                 throw new Error("Mandatory use of the use_character field for this entry")
-    }
-}
-
-module.exports.DBEntry = class DBEntry {
-    /**
-     * 
-     * @param {{p_key: String, d_key: String, value: String|Number|Boolean}} data 
-     */
-    constructor(data){
-        this.p_key = data.p_key;
-        this.d_key = data.d_key;
-        this.value = data.value
     }
 }
 
@@ -142,24 +130,22 @@ module.exports.CommandWriteEntry = class CommandWriteEntry extends module.export
         response.setContent(this.content.result(data.query));
 
         if(this.keyboard != null){
-            if(Array.isArray(this.keyboard)) {
-                for(let i = 0, leng = this.keyboard.length;i < leng;i++)
-                    keyboard.push(new Button(
-                        this.keyboard[i].title,
-                        this.keyboard[i].payload,
-                        this.keyboard[i].color !== undefined ? this.keyboard[i].color.toUpperCase() : "WHITE"
-                    ))
-            } else if(this.keyboard instanceof ExpressionPattern){
-                const kb = this.keyboard.result(data.query);
+            if(this.keyboard instanceof ExpressionPattern){
+                data.user.edit('keyboard', this.keyboard.result(data.query))
+            } else {
+                data.user.edit('keyboard', this.keyboard)
+            }
+        }
 
-                if(Array.isArray(kb))
-                    for(let i = 0, leng = kb.length;i < leng;i++)
-                        if(kb[i] != null)
-                            keyboard.push(new Button(
-                                kb[i].title,
-                                kb[i].payload,
-                                kb[i].color != undefined ? kb[i].color.toUpperCase() : "WHITE"
-                            ))
+        if(Array.isArray(data.user.keyboard)){
+            for(let i = 0, leng = data.user.keyboard.length;i < leng;i++){
+                if(data.user.keyboard[i] != null)
+                    keyboard.push(new Button(
+                        data.user.keyboard[i].title,
+                        data.user.keyboard[i].payload,
+                        data.user.keyboard[i].color != null ? data.user.keyboard[i].color.toUpperCase() : "WHITE",
+                        data.user.keyboard[i].own_line != null ? data.user.keyboard[i].own_line : false
+                    ))
             }
         }
 
@@ -181,7 +167,7 @@ module.exports.CommandWriteEntry = class CommandWriteEntry extends module.export
 
         response.addAttachments(...attachments);
             
-        response.setKeyboard(new Keyboard(false, true).rowAuto(0, data.buttons_on_row || 3, ...keyboard));
+        response.setKeyboard(new Keyboard(false, true).rowAuto(data.buttons_on_row || 3, ...keyboard));
         
         // Если не отключен автонабор
         if(!this.auto_typing)
@@ -224,14 +210,114 @@ module.exports.CommandCharacterEntry = class CommandCharacterEntry extends modul
                     else
                         this.data[i] = data.data[i];
             } else {
-                this.data = new Map();
-
-                for(let key in data.data)
-                    if(typeof data.data[key] === 'string'){
-                        this.data.set(key, new ExpressionPattern(data.data[key], importer, global.common_logger))
-                    } else {
-                        this.data.set(key, data.data[key]);
+                (function parse(data, parent){
+                    for(let cur in data) {
+                        if(typeof data[cur] === 'object' && data[cur] != null){
+                            parse(data[cur], parent[cur] = new Object());
+                        } else {
+                            if(typeof data[cur] === 'string'){
+                                parent[cur] = new ExpressionPattern(data[cur], importer, global.common_logger);
+                            } else {
+                                parent[cur] = data[cur];
+                            }
+                        }
                     }
+                })(data.data, this.data = new Object());
+            }
+        } else if(typeof data.data === "string" || data.data === null)
+            this.data = new ExpressionPattern(data.data.toString(), importer, global.common_logger);
+        else throw new TypeError("Incorrect data for field '" + this.field + "' in " + this.ident);
+    }
+
+    /**
+     * @override
+     * @see {@link CommandEntry.exec} для подробной информации
+     */
+    exec(data, emitter){
+        const _ = this;;
+
+        if(_.data instanceof Array){
+            const data_set = new Array();
+
+            for(let i = 0, leng = _.data.length;i < leng;i++)
+                if(_.data[i].data instanceof ExpressionPattern)
+                    data_set.push({
+                        ..._.data[i],
+                        data: _.data[i].data.result(data.query)
+                    })
+                else
+                    data_set.push(_.data[i]);
+
+            data.character.edit(_.field, data_set);
+
+            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
+        } else if(typeof _.data === 'object' && !(_.data instanceof ExpressionPattern)){
+            const data_set = new Object();
+
+            (function parse(r_data, parent){
+                for(let cur in r_data) {
+                    if(typeof r_data[cur] === 'object' && r_data[cur] != null && !(r_data[cur] instanceof ExpressionPattern)){
+                        parse(r_data[cur], parent[cur] = new Object());
+                    } else {
+                        if(r_data[cur] instanceof ExpressionPattern){
+                            parent[cur] = r_data[cur].result(data.query);
+                        } else {
+                            parent[cur] = r_data[cur];
+                        }
+                    }
+                }
+            })(this.data, data_set);
+
+            data.character.edit(_.field, data_set);
+
+            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
+        } else {
+            const data_set = _.data.result(data.query);
+
+            data.character.edit(_.field, data_set);
+
+            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
+        }
+    }
+}
+
+module.exports.CommandUserEntry = class CommandUserEntry extends module.exports.CommandEntry {
+    /**
+     * Изминяет данные пользователя в соответсвии с переданными параметрами
+     * 
+     * @param {{data: Map<String, String> | String, field: "data" | "map" | String}} data шаблон
+     */
+    constructor(data, importer){
+        super(data, importer);
+
+        this.field = data.field || "data";
+
+        if(typeof data.data === "object" && data.data !== null){
+            if(data.data instanceof Array){
+                this.data = new Array()
+
+                for(let i = 0, leng = data.data.length;i < leng;i++)
+                    if(typeof data.data[i].data === 'string')
+                        this.data[i] = {
+                            ...data.data[i],
+                            data: new ExpressionPattern(data.data[i].data, importer, global.common_logger)
+                        };
+                    else
+                        this.data[i] = data.data[i];
+            } else {
+                (function parse(data, parent){
+                    for(let cur in data) {
+                        if(typeof data[cur] === 'object' && data[cur] != null){
+                            parse(data[cur], parent[cur] = new Object());
+                        } else {
+                            if(typeof data[cur] === 'string'){
+                                parent[cur] = new ExpressionPattern(data[cur], importer, global.common_logger);
+                            } else {
+                                parent[cur] = data[cur];
+                            }
+                        }
+                    }
+                })(data.data, this.data = new Object());
             }
         } else if(typeof data.data === "string" || data.data === null)
             this.data = new ExpressionPattern(data.data.toString(), importer, global.common_logger);
@@ -254,75 +340,11 @@ module.exports.CommandCharacterEntry = class CommandCharacterEntry extends modul
                 else
                     data_set[key] = _.data.get(key);
 
-            data.character.edit(_.field, data_set);
+            data.user.edit(_.field, data_set);
 
-            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
+            data.query.get("user").set(_.field, data.user.getDisplayData(_.field))
         } else if(_.data instanceof Array){
-            const data_set = new Array();
-
-            for(let i = 0, leng = _.data.length;i < leng;i++)
-                if(_.data[i].data instanceof ExpressionPattern)
-                    data_set.push({
-                        ..._.data[i],
-                        data: _.data[i].data.result(data.query)
-                    })
-                else
-                    data_set.push(_.data[i]);
-
-            data.character.edit(_.field, data_set);
-
-            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
-        } else {
-            const data_set = _.data.result(data.query);
-
-            data.character.edit(_.field, data_set);
-
-            data.query.get("character").set(_.field, data.character.getDisplayData(_.field))
-        }
-    }
-}
-
-module.exports.GameDataEntry = class GameDataEntry extends module.exports.CommandEntry {
-    /**
-     * Генерирует шаблон запроса к базе данных, соответственно записывая необходимые данные в неё
-     * по этому шаблону
-     * 
-     * @param {{entries: Map<String, String>}} data шаблон
-     */
-    constructor(data, importer){
-        super(data, importer);
-
-        const _ = this;
-
-        _.order = data.order;
-        _.field = data.field;
-
-        if(data.order === 'set')
-            if(typeof data.data === 'object')
-                (function parse(data, parent){
-                    for(let cur in data) {
-                        if(typeof data[cur] === 'object' && data[cur] != null){
-                            parse(data[cur], parent[cur] = new Object());
-                        } else {
-                            if(typeof data[cur] === 'string'){
-                                parent[cur] = new ExpressionPattern(data[cur], importer, global.common_logger);
-                            } else {
-                                parent[cur] = data[cur];
-                            }
-                        }
-                    }
-                })(data.data, _.data = new Object());
-            else
-                throw new TypeError("The data must be object");
-    }
-
-    /**
-     * @override
-     * @see {@link CommandEntry.exec} для подробной информации
-     */
-    async exec(data, emitter){
-        if(this.order === 'set'){
-            let set_data = new Object();
+            const data_set = new Object();
 
             (function parse(r_data, parent){
                 for(let cur in r_data) {
@@ -336,51 +358,18 @@ module.exports.GameDataEntry = class GameDataEntry extends module.exports.Comman
                         }
                     }
                 }
-            })(this.data, set_data);
+            })(this.data, data_set);
 
-            data = JSON.stringify(set_data).replace(/\\/g, '\\\\');
+            data.user.edit(_.field, data_set);
 
-            await global.managers.pool.sql('common', "INSERT INTO `data` (`field_name`, `data`) values ('" + this.field + "', '" + data + "') ON DUPLICATE KEY UPDATE `data` = '" +  data + "'");
-        } else if(this.order === 'get'){
-            const result = await global.managers.pool.sql('common', sql.select('data').from('data').where(sql.like('field_name', this.field)).toString());
+            data.query.get("user").set(_.field, data.user.getDisplayData(_.field))
+        } else {
+            const data_set = _.data.result(data.query);
 
-            if(data.query.get('game_data') == null){
-                data.query.set('game_data', {});
-            }
+            data.user.edit(_.field, data_set);
 
-            data.query.get('game_data').set(this.field, result.length > 1 ? result.map(e => JSON.parse(e.data)) : result[0] == null ? result[0] : JSON.parse(result[0].data));
+            data.query.get("user").set(_.field, data.user.getDisplayData(_.field))
         }
-    }
-}
-
-module.exports.CommandSaveEntry = class CommandSaveEntry extends module.exports.CommandEntry {
-    /**
-     * Генерирует шаблон запроса к базе данных, соответственно записывая необходимые данные в неё
-     * по этому шаблону
-     * 
-     * @param {{entries: Map<String, String>}} data шаблон
-     */
-    constructor(data, importer){
-        super(data, importer);
-
-        this.entries = new Map();
-
-        for(let key in data.entries)
-            this.entries.set(key, new ExpressionPattern(data.entries[key], importer, global.common_logger))
-    }
-
-    /**
-     * @override
-     * @see {@link CommandEntry.exec} для подробной информации
-     */
-    exec(data, emitter){
-        let data_set = new Object(),
-            from = this.entries.keys();
-
-        for(let key of from)
-            data.query.get("state").get("data").set(key, (data_set[key] = this.entries.get(key).result(data.query)));
-
-        return data.user.scenario.editLabels(data_set);
     }
 }
 
@@ -396,7 +385,7 @@ module.exports.CommandExcecuteEntry = class CommandExcecuteEntry extends module.
         super(data, importer);
 
         this.vk = parent.manager.vk;
-        this.notify_error = parent.notify_error;
+        this.notify_error = data.notify_error != null ? data.notify_error : parent.notify_error;
         this.entries = new Array();
 
         if(data.prepare != undefined)
@@ -491,6 +480,35 @@ module.exports.CommandExcecutorEntry = class CommandExcecutorEntry extends modul
     }
 }
 
+module.exports.CommandChangeEntry = class CommandChangeEntry extends module.exports.CommandEntry {
+    constructor(data, importer){
+        super(data, importer);
+
+        this.target = data.target === 'user' ? 'user' : (data.target === 'character' ? 'character' : 'emitter');
+        this.data = data.data != null ? new ExpressionPattern(data.data, importer, global.common_logger) : null;
+
+        if(this.data == null) throw new TypeError("The target cannot be nulll.")
+    }
+
+    async exec(data, emitter, manager){
+        switch(this.target){
+            case "character":
+                await data.character.commit();  // Записываем изминения старого персонажа
+
+                data.setCharacter(await GetCharacter(parseInt(this.data.result(data.query))));
+            return;
+            case "user":
+                await data.user.commit();  // Записываем изминения старого персонажа
+
+                data.setUser(await GetUser(parseInt(this.data.result(data.query))));
+            return;
+            case "emitter":
+                emitter.sender_id = parseInt(this.data.result(data.query));
+            return;
+        }
+    }
+}
+
 module.exports.CommandCallEntry = class CommandCallEntry extends module.exports.CommandEntry {
     constructor(data, importer){
         super(data, importer);
@@ -518,11 +536,11 @@ module.exports.CommandConfirmationEntry = class CommandConfirmationEntry extends
     }
 
     async exec(data, emitter, manager){
-        return data.character.edit("confirmation", {
+        data.character.edit('confirmation', {
             excecutor: this.procedure.result(data.query),
             valid_to: Date.now() + 60000, // 60 minutes
             data: data.toPattern()
-        })
+        });
     }
 }
 
@@ -593,32 +611,9 @@ module.exports.CommandBindEntry = class CommandBindEntry extends module.exports.
     }
 }
 
-module.exports.CommandTypingEntry = class CommandTypingEntry extends module.exports.CommandEntry {
-    /**
-     * Генерирует по шаблону шаблон отпрвки статуса набора сообщения
-     * 
-     * @param {{delay: Number}} data шаблон
-     */
-    constructor(data, importer){
-        super(data, importer);
-
-        this.delay = data.delay;
-    }
-
-    /**
-     * @override
-     * @see {@link CommandEntry.exec} для подробной информации
-     */
-    exec(data, emitter){
-        const _ = this;
-
-        return new Promise((res, rej) => {
-            setTimeout(res, _.delay);
-
-            emitter.typing();
-        });
-    }
-}
+/**
+ * Временная дич
+ */
 
 module.exports.CommandQueryEntry = class CommandQueryEntry extends module.exports.CommandEntry {
     /**
@@ -688,14 +683,42 @@ module.exports.CommandScenarioEntry = class CommandScenarioEntry extends module.
     async exec(data, emitter, manager){
         switch(this.order){
             case "end":
-                return await data.user.setTargetScenario(null, 0, null);
+                return await data.user.edit('state', {id: null, state: 0, data: null});
             case "drop":
-                manager.run(this.target.result(data.query), data, emitter);
-            break;
+                return await manager.run(this.target.result(data.query), data, emitter);
             case "apply":
-                manager.apply(this.target.result(data.query), data, emitter);
-            break;
+                return await manager.apply(this.target.result(data.query), data, emitter);
         }
+    }
+}
+
+module.exports.CommandSaveEntry = class CommandSaveEntry extends module.exports.CommandEntry {
+    /**
+     * Генерирует шаблон запроса к базе данных, соответственно записывая необходимые данные в неё
+     * по этому шаблону
+     * 
+     * @param {{entries: Map<String, String>}} data шаблон
+     */
+    constructor(data, importer){
+        super(data, importer);
+
+        this.entries = new Map();
+
+        for(let key in data.entries)
+            this.entries.set(key, new ExpressionPattern(data.entries[key], importer, global.common_logger))
+    }
+
+    /**
+     * @override
+     * @see {@link CommandEntry.exec} для подробной информации
+     */
+    exec(data, emitter){
+        const data_set = new Object();
+
+        for(let key of this.entries.keys())
+            data.query.get("user").get("state").get("data").set(key, (data_set[key] = this.entries.get(key).result(data.query)));
+
+        data.user.state.editLabels(data_set);
     }
 }
 
@@ -780,7 +803,15 @@ module.exports.ScenarioChain = class ScenarioChain {
 
         if(this.use_character && data.query.get('character') == null){
             try {
-                data.setCharacter(await GetCharacter(data.user.id))
+                const character = await GetCharacter(data.user.id);
+
+                if(character != null)
+                    data.setCharacter(character);
+                else {
+                    await this.manager.apply('registration', data, emitter);
+
+                    return;
+                }
             } catch (e) {
                 global.managers.statistics.updateStat('command_av_handle_time', performance.now() - start)
 
@@ -846,7 +877,7 @@ module.exports.ScenarioChain = class ScenarioChain {
 
         if(!ended) {
             try {
-                await data.user.scenario.pushState(state_push);
+                data.user.state.pushState(state_push);
             } catch(e) {
                 global.common_logger.error(e);
             }

@@ -40,11 +40,11 @@ module.exports.ScenarioManager = class ScenarioManager {
         const f_data = new QueryData(command, user);
         
         // Проверяю, если у пользователя активный сценарий, и доступен ли он в базе.
-        if(user.scenario.id !== null && this.scenarios.get(user.scenario.id) !== undefined){
-            f_data.setState(user.scenario);
+        if(user.state.id !== null && this.scenarios.get(user.state.id) !== undefined){
+            f_data.setState(user.state);
 
             // Прордолжаю его исполнение
-            await this.scenarios.get(user.scenario.id).exec(f_data, emitter);
+            await this.scenarios.get(user.state.id).exec(f_data, emitter);
         } else {
             const keys = this.scenarios.keys();
 
@@ -52,26 +52,26 @@ module.exports.ScenarioManager = class ScenarioManager {
             for(let id of keys){
                 // Проверяю, сблюдаются ли условия для исполнения сценария
                 if(this.scenarios.get(id).canToExcecute(f_data.query)){
-                    // Устанавливаю целевой сценарий для этого пользователя
-                    user.setTargetScenario(id, 0, this.scenarios.get(id).preset)
-                        .then(async s_data => {
-                            f_data.setState(s_data);
-
-                            // Начинаю его исполнение
-                            await this.scenarios.get(id).exec(f_data, emitter);
-                        })
-                        // При ошибке установки сценария
-                        .catch(err => {
-                            global.common_logger.error("Error in call to write scenario data [" + user.id + "] with " + this.scenarios.get(id).name + ". ", err);
-
-                            emitter.reply(`При обработке команды произошла ошибка, администрация уже работает над решением проблемы.`);
-                        });
+                    try {
+                        // Устанавливаю целевой сценарий для этого пользователя
+                        user.edit('state', {id, state: 0, data: this.scenarios.get(id).preset})
+                        // Устанавливаем сценарий
+                        f_data.setState(user.state);
+                        // Начинаю его исполнение
+                        await this.scenarios.get(id).exec(f_data, emitter);
+                    } catch (err) {
+                        global.common_logger.error("Error in call to write scenario data [" + user.id + "] with " + this.scenarios.get(id).name + ".", err);
+        
+                        global.managers.statistics.updateStat('errors_scenario', 1)
+        
+                        emitter.reply(`При обработке команды произошла ошибка, администрация уже работает над решением проблемы.`);
+                    }
 
                     return;
                 }
             }
 
-            global.common_logger.error("Unable to select a suitable scenario for [" + user.id + "]");
+            global.common_logger.error("Unable to select a suitable scenario for [" + user.id + "]", user);
 
             emitter.reply(`Не могу найти для тебя подходящий сценарий... Администрация уже работает над этой проблемой.`);
             
@@ -102,23 +102,22 @@ module.exports.ScenarioManager = class ScenarioManager {
      * @param {QueryData} data Данные для исполнения
      * @param {CouplerEmitter} emitter данные для ответа
      */
-    apply(s_id, data, emitter){
+    async apply(s_id, data, emitter){
         if(this.scenarios.has(s_id)){
-            data.user.setTargetScenario(s_id, 0, this.scenarios.get(s_id).preset)
-                .then(async s_data => {
-                    data.setState(s_data);
+            try {
+                // Устанавливаю целевой сценарий для этого пользователя
+                data.user.edit('state', {id: s_id, state: 0, data: this.scenarios.get(s_id).preset})
+                // Устанавливаем сценарий
+                data.setState(data.user.state);
+                // Начинаю его исполнение
+                await this.scenarios.get(s_id).exec(data, emitter);
+            } catch (err) {
+                global.common_logger.error("Error in call to write scenario data [" + data.user.id + "] with " + this.scenarios.get(s_id).name + ".", err);
 
-                    // Начинаю его исполнение
-                    await this.scenarios.get(s_id).exec(data, emitter);
-                })
-                // При ошибке установки сценария
-                .catch(err => {
-                    global.common_logger.error("Error in call to write scenario data [" + data.user.id + "] with " + this.scenarios.get(s_id).name + ". ", err);
+                global.managers.statistics.updateStat('errors_scenario', 1)
 
-                    global.managers.statistics.updateStat('errors_scenario', 1)
-
-                    emitter.reply(`При обработке команды произошла ошибка, администрация уже работает над решением проблемы.`);
-                });
+                emitter.reply(`При обработке команды произошла ошибка, администрация уже работает над решением проблемы.`);
+            }
         } else {
             throw new TypeError(`The script ${s_id} not found`);
         }

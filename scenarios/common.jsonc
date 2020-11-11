@@ -7,73 +7,11 @@
     "preset": {},
     "condition": "user.registered = true",
     "entries": [
-        {
-            "type": "write",
-            "break_on": true,
-            "message": [
-              "[СИСТЕМА]\n",
-              "Информация:",
-              "Название: {> app.name}",
-              "Версия: {> app.public_version}",
-              "Dev версия: {> app.dev_version}",
-              "Время работы: {> numbers.to_ru_time_value(app.getUptime(), 1)}\n",
-              "Описание:",
-              "{> app.description}\n"
-            ],
-            "condition": "command.header = 'информация'"
-        },
-        {
-            "type": "write",
-            "break_on": true, // createdAt
-            "message": [
-              "[СИСТЕМА]\n",
-              "Ваша текущая область: {> character.map.sity = null ? 'Регион ' + character.map.region.name + ' провинция ' + character.map.province.id : 'Город ' + character.map.sity.name}\n",
-              "Для получения информации по текущему {> character.map.sity = null ? 'региону: введите ' + command.prefix + 'карта помощь' : 'городу: введите ' + command.prefix + 'город помощь'}\n",
-              "Полное имя персонажа привязанного к вам: {> character.fullname}",
-              "Идентификатор вашего персонажа: {> character.id}",
-              "Вы с нами уже: {> numbers.to_ru_time_value(date.now() - user.createdAt)}\n",
-              "Общие команды:",
-              "!паспорт - для просмтра паспорта персонажа",
-              "!персонаж - для просмотра информации о персонаже",
-              "!карта помощь - для получения помощи по карте",
-              "!инвентарь помощь - для получения помощи по инвентарю",
-              "!город помощь - для получения помощи по городу",
-              "!информация - для получения общей информации о боте\n"
-            ],
-            "condition": "command.header = 'помощь'"
-        },
-        {
-            "type": "write",
-            "break_on": true,
-            "message": [
-                "[СИСТЕМА]\n",
-                "Состояние:",
-                "Здоровье: [{> character.health.value + '/' + character.health.max}]",
-                "Выносливость: [{> character.endurance.value + '/' + character.endurance.max}]",
-                "***",
-                "Навыки:",
-                "Командование Ур {> character.stats.skills.command.value}",
-                "Торговля Ур {> character.stats.skills.trade.value}",
-                "Сражение Ур {> character.stats.skills.battle.value}",
-                "Управление Ур {> character.stats.skills.control.value}",
-                "***",
-                "Атрибуты:",
-                "Сила Ур {> character.stats.stats.strength.value}",
-                "Ловкость Ур {> character.stats.stats.agility.value}",
-                "Интеллект Ур {> character.stats.stats.intelligence.value}"
-            ],
-            "condition": "command.header = 'персонаж'"
-        },
-        {
-            "type": "write",
-            "break_on": true,
-            "message": [
-                "[ID_CARD:{> character.id}]",
-                "Имя: {> character.name}",
-                "Происхождение: {> origin.getOriginParameter(character.origin, 'name')}",
-                "Государство: {> character.country != null ? character.country : '***' }"
-            ],
-            "condition": "command.header = 'паспорт'"
+        { // Завершаем сценарий
+            "type": "scenario",
+            "order": "drop",
+            "target": "'info-transfer'", 
+            "condition": "command.header = 'помощь' | command.header = 'информация' | command.header = 'персонаж' | command.header = 'паспорт'"
         },
         {
             "type": "confirmation-ok",  // Безусловно, на это сценарий будет прерван
@@ -82,7 +20,7 @@
         { // Завершаем сценарий
             "type": "scenario",
             "order": "drop",
-            "target": "'sity-transfer'", // Безусловно перебрасывает сценарий на сценарий sity-transfer
+            "target": "'city-transfer'", // Безусловно перебрасывает сценарий на сценарий city-transfer
             "condition": "command.header = 'город'"
         },
         { // Завершаем сценарий

@@ -105,3 +105,22 @@ table.auto-table {
 .checkbox-common-cont {
     padding: 0.25em;
 }
+
+.character-area-editor > button {
+    margin: 0.25em 0;
+}
+
+.map-tip {
+    width: 100%;
+    margin: 0.25em 0;
+}
+
+.sub-header {
+    padding: 0.5em 0 0.25em 0;
+    text-transform: uppercase;
+}
+
+.sub-section {
+    padding: 0 0 0 0.5em;
+    border-left: dashed 1px;
+}

@@ -14,6 +14,8 @@
     --background-color-1: #282828;
     --background-color-2: #323232;
     --background-color-3: #3c3c3c;
+    --background-color-negative: rgb(220, 90, 90);
+    --background-color-positive: rgb(90, 220, 90);
     --danger-text-color: rgb(220, 90, 90);
     --common-font: 'JetBrains Mono';
     --header-font: 'Andale Mono'
@@ -409,6 +411,14 @@ td {
     width: 100%;
     height: 100%;
     overflow: hidden auto;
+}
+
+.auto-number {
+    background: inherit;
+    border: dashed 1px;
+    border-top: none;
+    border-left: none;
+    outline: none;
 }
 
 @media screen and (max-width: 900px) {

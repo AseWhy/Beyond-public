@@ -13,7 +13,7 @@ module.exports.CharacterData = class CharacterData {
             this.data[key] = data[key];
     }
 
-    toRaw(){
-        return JSON.stringify(this.data).replace(/\\/g, '\\\\');
+    toJSON(){
+        return this.data;
     }
 }

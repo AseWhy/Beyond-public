@@ -50,7 +50,7 @@
     }([
         {
             name: "SITY_PRESENT_ICON",
-            from: "/icons/sity.present.icon.png"
+            from: "/icons/city.present.icon.png"
         }
     ])
 
@@ -192,8 +192,8 @@
             ctx.stroke();
 
             [dx, dy] = findCentroid(dx, dy);
-            
-            if(data[j].sity !== null) {
+
+            if(data[j].city !== null) {
                 ctx.fillStyle = COLOR_MAP_SITY_MARKER;
                 ctx.drawImage(icons.SITY_PRESENT_ICON, dx - size, dy - size, size * 2, size * 2);
 
@@ -250,7 +250,7 @@
                 id: this.id,
                 gfx: this.raw,
                 name: this.name,
-                intensity: this.intensity,
+                intencity: this.intencity,
                 country: this.country,
                 owner: this.owner.id,
                 spawn: this.spawn,
@@ -279,7 +279,7 @@
                 _.gfx_buffer.onload = () =>
                     ctx.drawImage(_.gfx_buffer, ox, oy, _.gfx_buffer.width * s, _.gfx_buffer.height * s);
                 
-                _.gfx_buffer.src = _.raw[0] === '/' ? _.raw.replace("#token", api.session.token) : 'data:image/jpeg;base64,' + utils.array_to_base64(utils.hex_to_array(_.raw));
+                _.gfx_buffer.src = _.raw.substring(0, window.api.protocol.length) === window.api.protocol ? _.raw : 'data:image/jpeg;base64,' + utils.array_to_base64(utils.hex_to_array(_.raw));
             }
         }
  
@@ -466,7 +466,7 @@
             r.color = json.color;
             r.country = json.country;
             r.description = json.description;
-            r.raw = `/api/v1.0/?function=web.map&token=#token&region=${json.id}`;
+            r.raw = window.api.getPathToApiResource('map', {region: json.id});
             r.id = json.id;
             r.name = json.name;
 
@@ -488,10 +488,12 @@
             this.population = parseInt(data.population);
             this.neighbors  = data.neighbors;
             this.owner      = region;
-            this.sity       = null;
+            this.city       = null;
 
             // Получаю границы
             this.borders = [[Infinity, Infinity], [-Infinity, -Infinity]];
+
+            let dx = new Array(), dy = new Array();
 
             for(let i = 0, leng = geometry.length;i < leng;i++){
                 if(geometry[i][0] < this.borders[0][0])
@@ -502,24 +504,32 @@
                     this.borders[1][0] = geometry[i][0];
                 if(geometry[i][1] > this.borders[1][1])
                     this.borders[1][1] = geometry[i][1];
+
+                dx.push(geometry[i][0]);
+                dy.push(geometry[i][1])
             }
+
+            [dx, dy] = findCentroid(dx, dy);
+
+            this.position = {x: dx, y: dy};
 
             this.distance = distant(this.borders[0][1], this.borders[0][0], this.borders[1][1], this.borders[1][0]);
         }
 
         toJSON(){
             return {
-                id: this.id,
-                geometry: JSON.stringify(this.geometry),
-                borders: JSON.stringify(this.borders),
-                biome: this.biome,
-                type: this.type,
-                gfx: this.raw,
-                distance: this.distance,
+                id:         this.id,
+                geometry:   JSON.stringify(this.geometry),
+                borders:    JSON.stringify(this.borders),
+                biome:      this.biome,
+                type:       this.type,
+                gfx:        this.raw,
+                distance:   this.distance,
+                position:   this.position,
                 population: this.population,
-                neighbors: this.neighbors,
-                owner: this.owner ? this.owner.id : null,
-                sity: this.sity
+                neighbors:  this.neighbors,
+                owner:      this.owner ? this.owner.id : null,
+                city:       this.city
             }
         }
 
@@ -531,16 +541,17 @@
                 neighbors: [...this.neighbors],
                 owner: this.owner !== null,
                 type: this.type,
-                sity: this.sity ? {
-                    name: this.sity.name,
-                    capital: this.sity.capital
+                city: this.city ? {
+                    name: this.city.name,
+                    capital: this.city.capital
                 } : null,
+                position: {...this.position},
                 borders: [[...this.borders[0]], [...this.borders[1]]]
             }
         }
 
         setSity({capital, cell, citadel, culture, feature, i, name, port, shanty, state, temple, walls}){
-            this.sity = {
+            this.city = {
                 capital,
                 citadel,
                 culture,
@@ -560,8 +571,8 @@
         static fromJSON(json, region){
             const province = new Province(json, json.geometry, region);
             
-            province.raw = `/api/v1.0/?function=web.map&token=#token&province=${json.id}`
-            province.sity = json.sity;
+            province.raw = window.api.getPathToApiResource('map', {province: json.id});
+            province.city = json.city;
 
             return province;
         }

@@ -1,4 +1,4 @@
-const { CommonStatsPreset, Stat } = require("./ccc.stats.preset");
+const { CommonStatsPreset, Feature } = require("./ccc.stats.preset");
 
 /**
  * Прессет стандартных характеристик для происхождения
@@ -24,19 +24,18 @@ module.exports.OriginDefault = class OriginDefault {
             this.stats.stats.blend(data.stats);
     }
 
-    blend(stat){
-        stat.skills.blend(this.stats.skills);
-        stat.stats.blend(this.stats.stats);
+    getBlendData(){
+        return this.stats;
     }
 
     get(key){
         let path = key.split('.'),
             buffer = this;
-
+        
         for(let i = 0, leng = path.length;i < leng;i++)
             buffer = buffer[path[i]];
         
-        if(buffer instanceof Stat)
+        if(buffer instanceof Feature)
             return buffer.value;
         else
             return buffer;

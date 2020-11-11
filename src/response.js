@@ -277,13 +277,24 @@ module.exports.Keyboard = class Keyboard {
      * @param  {...Button} buttons массив добавляемых кнопок
      * @param {Number} method при `method` = 0, будет добавлять кнопки сверху, иначе снизу
      */
-    rowAuto(method = 0, b_o_r = 4, ...buttons){
+    rowAuto(b_o_r = 4, ...buttons){
         b_o_r = b_o_r < 4 ? b_o_r : 4;
+        
+        for (let i = 0, leng = buttons.length, buffer, j = 0, j_leng; i < leng; i += j) {
+            buffer = buttons.slice(i, i + b_o_r);
 
-        for (let i = 0, leng = buttons.length; i < leng; i += b_o_r) {
-            method ? 
-                this.pushRow(...buttons.slice(i, i + b_o_r)) :
-                this.unshiftRow(...buttons.slice(i, i + b_o_r));
+            for(j = 0, j_leng = buffer.length; j < j_leng; j++) {
+                if(buffer[j].own_line){
+                    if(j !== 0)
+                        buffer = buttons.slice(i, i + j);
+                    else
+                        buffer = buttons.slice(i, i + ++j);
+
+                    break;
+                }
+            }
+
+            this.pushRow(...buffer)
         }
 
         return this;
@@ -318,9 +329,10 @@ module.exports.Button = class Button {
     /**
      * @param {String} label Text to be displayed on button
      * @param {Object} payload (optional) Object to be returned on button press 
-     * @param {String} color (optional) Color of the button ["RED"|"GREEN"|"BLUE"|"WHITE"] 
+     * @param {String} color (optional) Color of the button ["RED"|"GREEN"|"BLUE"|"WHITE"]
+     * @param {Boolean} own_line (optional) Whether the button spans the entire row or will it be treated like a regular button
      */
-    constructor(label, payload = {}, color = "WHITE") {
+    constructor(label, payload = {}, color = "WHITE", own_line = false) {
         if (typeof payload !== "object" || payload === null) 
             throw new TypeError("Payload must be defined object")
         
@@ -330,6 +342,7 @@ module.exports.Button = class Button {
         this.label = label;
         this.payload = payload;
         this.color = ButtonColorTypes[color.toUpperCase()];
+        this.own_line = own_line;
     }
 
     toJSON() {
