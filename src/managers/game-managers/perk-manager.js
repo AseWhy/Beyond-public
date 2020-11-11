@@ -24,9 +24,8 @@ class Perk {
             this.stats.stats.blend(data.stats.stats)
     }
 
-    blend(stat){
-        stat.skills.blend(this.stats.skills);
-        stat.stats.blend(this.stats.stats);
+    getBlendData(){
+        return this.stats;
     }
 }
 
@@ -106,16 +105,16 @@ module.exports.PerkManager = class PerkManager extends EventManager {
 
         for(let i = 0, leng = ids.length;i < leng;i++){
             if((buffer = this.perks.get(ids[i])) != null){
-                buffer.blend(result);
+                result.blend(buffer)
             } else
                 removes.push(ids[i]);
         }
 
         if((buffer = global.managers.origin.getOrigin(origin)) != null) {
-            buffer.blend(result);
+            result.blend(buffer)
 
-            endurance += buffer.endurance + 5 * result.stats.strength.value;
-            health += buffer.health + 3 * result.stats.strength.value;
+            endurance   += buffer.endurance;
+            health      += buffer.health;
         } else
             throw new Error("Cannot find origin " + origin);
 

@@ -27,10 +27,10 @@
             "message": [
                 "[СИСТЕМА]\n",
                 "Данные по региону {> character.map.region.name}:",
-                "Население: {> numbers.to_ru_format(character.map.region.population)}",
-                "Провинций: {> numbers.to_ru_format(character.map.region.provc)}",
+                "Население: {> numbers.to_locale_format(character.map.region.population)}",
+                "Провинций: {> numbers.to_locale_format(character.map.region.provc)}",
                 "{> character.map.region.description != null ? '\nОписание региона: ' + character.map.region.description : '' }",
-                "{> character.data.moving = true ? '\nПеремещние персонажа, до прибытия в целевую провинцию осталось: ' + numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now()) : ''}"
+                "{> character.data.moving = true ? '\nПеремещение персонажа, до прибытия в ' + (character.data.moving_target != null ? character.data.moving_target : 'целевую провинцию') + ' осталось: ' + numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now()) : ''}"
             ],
             "attachments": [
                 {
@@ -60,16 +60,16 @@
                     "break_on": true,
                     "message": [
                         "[СИСТЕМА]\n",
-                        "На данный момент вы находитесь в городе, пожайлуста выйдите из города, для возможности перемещения по региону."
+                        "На данный момент вы находитесь в городе, пожалуйста выйдите из города, для возможности перемещения по региону."
                     ],
-                    "condition": "character.map.sity != null"
+                    "condition": "character.map.city != null"
                 },
                 {
                     "type": "write",
                     "break_on": true,
                     "message": [
                         "[СИСТЕМА]\n",
-                        "Перемещние персонажа, до прибытия в целевую провинцию осталось: {> numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now())}"
+                        "Перемещение персонажа, до прибытия в {> character.data.moving_target != null ? character.data.moving_target : 'целевую провинцию'} осталось: {> numbers.to_ru_time_value((character.data.moving_start + character.data.moving_arrival_after) - date.now())}"
                     ],
                     "condition": "character.data.moving = true"
                 },
@@ -82,9 +82,9 @@
                         "{set paths = map.getProvincePaths(character.map); > strings.join(paths.fullnames, null, '\n')}\n",
                         "Для перемещения напишите !карта идти (и вот тут номер провинции)\n",
                         "Например: !карта идти 2104 - персонаж начнет перемещение в провинцию с номером 2104. {",
-                        "> character.map.province.sity != null ? ('\n\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.sity.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.') : ''; }"
+                        "> character.map.province.city != null ? ('\n\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.city.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.') : ''; }"
                     ],
-                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'GREEN'), character.map.province.sity != null ? keyboard.createKeyboard('город войти', arrays.from('Войти в город'), 'GREEN', false) : arrays.from())",
+                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'BLUE'), character.map.province.city != null ? keyboard.createKeyboard('город войти', 'Войти в город', 'GREEN', false, false, true) : arrays.from())",
                     "attachments": [
                         {
                             "type": "sql-attachment",
@@ -106,6 +106,7 @@
                                 "moving_from": "character.map.province.id",
                                 "moving_to": "command.arg[1]",
                                 "moving_start": "date.now()",
+                                "moving_target": "'целевую провинцию'",
                                 "moving_arrival_after": "map.getMoveArrivalTime(character.map.province.id, command.arg[1])"
                             },
                             "condition": "true"
@@ -125,17 +126,17 @@
                                     "type": "write",
                                     "message": [
                                         "[СИСТЕМА]\n",
-                                        "Перемещние завершено.",
+                                        "Перемещение завершено.",
                                         "Ваша текущая провинция: {> character.data.moving_to}",
                                         "Путь занял у вас: {",
                                             "> numbers.to_ru_time_value(character.data.moving_arrival_after) + '\n';",
-                                            "> character.map.province.sity != null ? ('\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.sity.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.\n\n') : '';",
+                                            "> character.map.province.city != null ? ('\n⚠ Так-же в вашей текущей провинции есть город ' + character.map.province.city.name + ', для того чтобы войти в него введите: ' + command.prefix + 'город войти - для перемещения в город.\n\n') : '';",
                                         "}",
                                         "Для дальнейшего перемещения введите !карта идти (и вот тут номер провинции)\n",
                                         "Доступные провинции для перемещения:",
                                         "{set paths = map.getProvincePaths(character.map); > strings.join(paths.fullnames, null, '\n')}\n"
                                     ],
-                                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'GREEN'), character.map.province.sity != null ? keyboard.createKeyboard('город войти', arrays.from('Войти в город'), 'GREEN', false) : arrays.from())",
+                                    "keyboard": "arrays.concat(keyboard.createKeyboard('карта идти', paths.names, 'BLUE'), character.map.province.city != null ? keyboard.createKeyboard('город войти', 'Войти в город', 'GREEN', false, false, true) : arrays.from())",
                                     "attachments": [
                                         {
                                             "type": "sql-attachment",
@@ -160,7 +161,11 @@
                         {   // Если персонаж ещё в процессе перемещения
                             "type": "write",
                             "break_on": true,
-                            "message": "Перемещение в провинцию {> command.arg[1]}, прибытие через: {> numbers.to_ru_time_value(character.data.moving_arrival_after)}.",
+                            "message": [
+                                "[СИСТЕМА]\n",
+                                "Перемещение в провинцию {> command.arg[1]}, прибытие через: {> numbers.to_ru_time_value(character.data.moving_arrival_after)}."
+                            ],
+                            "keyboard": [],
                             "condition": "true"
                         }
                     ]

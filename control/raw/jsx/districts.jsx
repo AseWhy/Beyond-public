@@ -1,4 +1,4 @@
-window.addEntryPage("districts", (exports, emitter) => {
+window.addEntryPage("districts", window.config.permissions.MAP, (exports, emitter) => {
     class GraphNode {
         constructor(x, y, data, drawer){
             this.id             = utils.unique_id();
@@ -651,15 +651,16 @@ window.addEntryPage("districts", (exports, emitter) => {
                     const drawer = exports.get("graph_drawer"),
                           parent = drawer.getById(this.state.target.parent);
 
-                    for(let i = 0, leng = parent.connections.length;i < leng;i++){
-                        if((buffer = drawer.getById(parent.connections[i])) != null && buffer.id != this.state.target.id){
-                            if(buffer.node.id == e.target.value){
-                                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Идентификатор ' + e.target.value + ' уже используется на этом уровне дерева.', 'error')
+                    if(parent)
+                        for(let i = 0, leng = parent.connections.length;i < leng;i++){
+                            if((buffer = drawer.getById(parent.connections[i])) != null && buffer.id != this.state.target.id){
+                                if(buffer.node.id == e.target.value){
+                                    emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Идентификатор ' + e.target.value + ' уже используется на этом уровне дерева.', 'error')
 
-                                return false;
+                                    return false;
+                                }
                             }
                         }
-                    }
                     
                     this.state.target.node[e.target.name] = parseInt(e.target.value);
                 } else {

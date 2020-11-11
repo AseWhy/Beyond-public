@@ -9,14 +9,21 @@
      },
     "condition": "false",
     "entries": [
+        { // Завершаем сценарий
+            "type": "scenario",
+            "order": "drop",
+            "target": "'info-transfer'", 
+            "condition": "command.header = 'помощь' | command.header = 'информация' | command.header = 'персонаж' | command.header = 'паспорт'"
+        },
         {
             "type": "write",
             "break_on": true,
             "prepare": "set work = businesses.getWorkFullInfoBy('id', character.data.cur_work_ident, character);",
             "message": [
                 "[СИСТЕМА]\n",
-                "Персонаж, в данный момент, работает. Невозможно обработать данную команду в текущем контексте. До завершения осталось {> numbers.to_ru_time_value(state.data.ended - date.now())}."
+                "Персонаж, в данный момент, работает. Невозможно обработать данную команду в текущем контексте. До завершения осталось {> numbers.to_ru_time_value(user.state.data.ended - date.now())}."
             ],
+            "keyboard": [],
             "condition": "work = null"
         },
         {

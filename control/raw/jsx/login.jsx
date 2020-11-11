@@ -1,4 +1,4 @@
-window.addEntryPage("login", null, (data, emitter, elements) => {
+window.addEntryPage("login", -0x1, null, (data, emitter, elements) => {
     "use strict";
 
     const inputs = document.getElementsByTagName("input"),
@@ -16,13 +16,11 @@ window.addEntryPage("login", null, (data, emitter, elements) => {
             if(window.location.hash === "")
                 buttons[0].click({target: buttons[0]});
             else {
-                const target = window.location.hash.substring(1);
+                const target = window.location.hash.substring(1).split('~')[0];
 
                 for(let i = 0, leng = buttons.length;i < leng;i++) {
-                    if(utils.to_url_safe(buttons[i].innerText.toLowerCase()) === target) {
-                        buttons[i].click({target: buttons[i]});
-
-                        break;
+                    if(buttons[i].getAttribute('data-page') === target) {
+                        window.loadPage(target);
                     }
                 }
             }

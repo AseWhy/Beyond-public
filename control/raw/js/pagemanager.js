@@ -58,12 +58,13 @@
     }
 
     class PageEntry {
-        constructor(content, callback, data, onleave){
+        constructor(content, permissions, callback, data, onleave){
             if(typeof data !== "function" && data !== null && typeof data !== "undefined")
                 throw new TypeError("Dataset must be a function!");
 
             this.contents = new DOMParser().parseFromString(content, "text/html").body.getElementsByClassName("imbedded");
             this.callback = callback;
+            this.permissions = 0x1 | (permissions ?? 0x0);
             this.onleave = onleave;
             this.data = data;
             this.emitter = null;
@@ -73,17 +74,37 @@
 
     function load(name){
         const page = Pages.get(name),
-              s = document.getElementById("bodytarget");
+              s = document.getElementById("bodytarget"),
+              buttons = document.getElementsByClassName("button");
+
+        for(let i = 0, leng = buttons.length;i < leng;i++){
+            for(let j = 0;j < leng;j++){
+                buttons[j].classList.remove("active");
+
+                if(buttons[j].getAttribute('data-page') === name)
+                    buttons[j].classList.add("active")
+            }
+        }
 
         for(let i = 0, leng = s.children.length;i < leng;i++)
             s.removeChild(s.children[i]);
+
+        if(page.permissions !== -0x1 && (window.api.session.user === null || window.api.session.user.permissions !== -0x1)) {
+            if(
+                window.api.session.user == null ||
+                page.permissions === -0x2 && window.api.session.user.permissions !== -1 ||
+                (window.api.session.user.permissions & page.permissions) != page.permissions
+            ){
+                load('denied');
+
+                return;
+            }
+        }
 
         for(let i = 0, leng = page.contents.length;i < leng;i++)
             s.append(page.contents[i].cloneNode(true));
             
         if(!page.fired){
-            console.log(name)
-
             page.emitter = new Emitter();
 
             const data = new Map();
@@ -117,7 +138,8 @@
 
         page.data.set("active", true);
 
-        page.callback.apply(null, [page.data, page.emitter, elements]);
+        if(typeof page.callback === 'function')
+            page.callback.apply(null, [page.data, page.emitter, elements]);
 
         Active = page;
     }
@@ -126,12 +148,16 @@
         Exporters.push(exporter);
     }
 
-    exporter.addEntryPage = (name, datainit = () => {}, callback = () => true, onleave = () => {}) => {
+    exporter.addEntryPage = (name, permissions = 0x1, datainit = () => {}, callback = () => true, onleave = () => {}) => {
         fetch("/subpages/" + name)
             .then(data => data.text())
             .then(data => {
-                Pages.set(name, new PageEntry(data, callback, datainit, onleave));
+                Pages.set(name, new PageEntry(data, permissions, callback, datainit, onleave));
             });
+    }
+
+    exporter.removeEntryPage = (name) => {
+        Pages.delete(name);
     }
 
     exporter.loadPage = name => {

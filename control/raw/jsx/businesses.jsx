@@ -1,4 +1,4 @@
-window.addEntryPage("businesses", (exports, emitter) => {
+window.addEntryPage("businesses", window.config.permissions.BUSINESSES, (exports, emitter) => {
     function clone(obj){
         return JSON.parse(JSON.stringify(obj));
     }
@@ -38,7 +38,7 @@ window.addEntryPage("businesses", (exports, emitter) => {
         }
 
         render(){
-            return <td class="add-cont" disable={this.state.handling}>
+            return <td class="add-cont" disable={this.state.handling.toString()}>
                 <input 
                     type="text"
                     name="display"
@@ -59,6 +59,76 @@ window.addEntryPage("businesses", (exports, emitter) => {
         }
     })
     
+    exports.set('PriceData', class PriceData extends React.Component {
+        constructor(props){
+            super(props);
+
+            this.state = {
+                addtype: null
+            }
+        }
+
+        setAddType(e){
+            this.setState({addtype: e.target.value});
+        }
+
+        addField(e, addvalues){
+            if(typeof this.props.onAddPrice === 'function') {
+                this.props.onAddPrice(e, this.state.addtype || addvalues[0]);
+
+                this.setState({addtype: null});
+            }
+        }
+
+        render(){
+            if(typeof this.props.price === 'number')
+                this.props.price = {[this.props.default]: this.props.price};
+
+            let buffer = null
+              , _ = this
+              , defaults = _.props.defaults ?? {
+                  bans: 'Баны',
+                  backpack: "Стройматериалы"
+              }
+              , addvalues = Object.keys(defaults).filter(e => _.props.price[e] == null);
+
+            return <div class="income-cont">
+                {
+                    (() => {
+                        if(_.props.price != null && (buffer = Object.entries(_.props.price)).length != 0) {
+                            return buffer.map(e => 
+                                <div class="price-row-data">
+                                    <div class="price-name-data">{defaults[e[0]]}</div>
+                                    <input type="text" class='price-input-data' name={e[0]} value={e[1]} onChange={_.props.onPriceEnter}/>
+                                    <button class="price-rem-data" name={e[0]} onMouseDown={this.props.onRemPrice}>✕</button>
+                                </div>
+                            )
+                        }
+                    })()
+                }
+
+                {
+                    (() => {
+                        if(addvalues.length > 0) {
+                            return <div class="add-price-cont">
+                                <select class='add-price-select' onChange={_.setAddType.bind(_)} value={_.state.addtype || addvalues[0]}>
+                                    {
+                                        addvalues.map((e, i) => 
+                                            <option value={e}>{defaults[e]}</option>
+                                        )
+                                    }
+                                </select>
+            
+                                <button class="button-statement" onClick={e => _.addField(e, addvalues)}>
+                                    Добавить
+                                </button>
+                            </div>
+                        }
+                    })()
+                }
+            </div>
+        }
+    })
 
     exports.set('SelectionArea', class SelectionArea extends React.Component {
         constructor(props){
@@ -201,27 +271,7 @@ window.addEntryPage("businesses", (exports, emitter) => {
         }
 
         hasChanges(){
-            if(
-                this.state.comp.id != this.state_heap.comp.id ||
-                this.state.comp.type != this.state_heap.comp.type ||
-                this.state.comp.display != this.state_heap.comp.display ||
-                this.state.comp.condition_data != this.state_heap.comp.condition_data ||
-                this.state.comp.description != this.state_heap.comp.description
-            )
-                return true;
-            
-            for(let key in this.state.comp.data){
-                if(this.state_heap.comp.data[key] == null){
-                    return true;
-                } else if(typeof this.state.comp.data[key] === 'object') {
-                    if(JSON.stringify(this.state_heap.comp.data[key]) != JSON.stringify(this.state.comp.data[key]))
-                        return true;
-                } else if (this.state_heap.comp.data[key] != this.state.comp.data[key]){
-                    return true;
-                }
-            }
-
-            return false;
+            return JSON.stringify(this.state.comp) != JSON.stringify(this.state_heap.comp);
         }
 
         componentDidMount(){
@@ -286,14 +336,32 @@ window.addEntryPage("businesses", (exports, emitter) => {
             this.setState({comp: this.state.comp});
         }
 
-        getFormatedData(field){
-            if(this.state.comp.data[field] == null){
-                return '';
-            } else if(typeof this.state.comp.data[field] === 'object'){
-                return JSON.stringify(this.state.comp.data[field], null, 4);
-            } else {
-                return this.state.comp.data[field];
+        editPrice(type, target, e, data){
+            switch(type){
+                case "edit":
+                    if(typeof this.state.comp.data[target] === 'object'){
+                        this.state.comp.data[target][e.target.name] = e.target.value;
+                    } else {
+                        this.state.comp.data[target] = {[e.target.name]: e.target.value};
+                    }
+                break;
+                case "rem":
+                    if(typeof this.state.comp.data[target] === 'object'){
+                        delete this.state.comp.data[target][e.target.name];
+                    } else {
+                        this.state.comp.data[target] = {};
+                    }
+                break;
+                case "add":
+                    if(typeof this.state.comp.data[target] === 'object'){
+                        this.state.comp.data[target][data] = 0;
+                    } else {
+                        this.state.comp.data[target] = {[data]: 0};
+                    }
+                break;
             }
+
+            this.setState({comp: this.state.comp})
         }
 
         render(){
@@ -314,6 +382,7 @@ window.addEntryPage("businesses", (exports, emitter) => {
                                         <option value="1">Бизнес</option>
                                     </select>
                                 </div>,
+
                                 <div class='auto-label'>
                                     Отображаемое имя
 
@@ -321,6 +390,7 @@ window.addEntryPage("businesses", (exports, emitter) => {
                 
                                     </textarea>
                                 </div>,
+
                                 <div class='auto-label'>
                                     Описание
 
@@ -328,6 +398,7 @@ window.addEntryPage("businesses", (exports, emitter) => {
                 
                                     </textarea>
                                 </div>,
+
                                 <div class='auto-label'>
                                     Условие присутствия
 
@@ -367,22 +438,73 @@ window.addEntryPage("businesses", (exports, emitter) => {
                                                 <div class='auto-label'>
                                                     Стоимость
 
-                                                    <textarea ref={e => _.update_needs.push(e)} title='Сумма необходимая для приобретения бизнеса.'  name='cost' class="auto_message" value={_.getFormatedData('cost')} onChange={_.editData.bind(_)}>
-
-                                                    </textarea>
+                                                    {
+                                                        React.createElement(exports.get('PriceData'), {
+                                                            onPriceEnter: _.editPrice.bind(_, 'edit', 'cost'),
+                                                            onRemPrice: _.editPrice.bind(_, 'rem', 'cost'),
+                                                            onAddPrice: _.editPrice.bind(_, 'add', 'cost'),
+                                                            price: _.state.comp.data.cost ?? {},
+                                                            default: 'endurance',
+                                                            defaults: {endurance: 'Выносливость'}
+                                                        })
+                                                    }
                                                 </div>,
                                                 <div class='auto-label'>
                                                     Доходность
 
-                                                    <textarea ref={e => _.update_needs.push(e)} title='Сумма, которая будет выплачена игроку по завершении работы.'   name='income' class="auto_message" value={_.getFormatedData('income')} onChange={_.editData.bind(_)}>
+                                                    {
+                                                        React.createElement(exports.get('PriceData'), {
+                                                            onPriceEnter: _.editPrice.bind(_, 'edit', 'income'),
+                                                            onRemPrice: _.editPrice.bind(_, 'rem', 'income'),
+                                                            onAddPrice: _.editPrice.bind(_, 'add', 'income'),
+                                                            price: _.state.comp.data.income ?? {},
+                                                            default: 'bans'
+                                                        })
+                                                    }
+                                                </div>,
 
-                                                    </textarea>
+                                                <div class='auto-label'>
+                                                    Прокачивает статы
+
+                                                    {
+                                                        React.createElement(exports.get('PriceData'), {
+                                                            onPriceEnter: _.editPrice.bind(_, 'edit', 'stats'),
+                                                            onRemPrice: _.editPrice.bind(_, 'rem', 'stats'),
+                                                            onAddPrice: _.editPrice.bind(_, 'add', 'stats'),
+                                                            price: _.state.comp.data.stats ?? {},
+                                                            default: 'strength',
+                                                            defaults: {
+                                                                strength: 'Сила',
+                                                                aglity: 'Ловкость',
+                                                                intelligence: 'Интеллект'
+                                                            }
+                                                        })
+                                                    }
+                                                </div>,
+
+                                                <div class='auto-label'>
+                                                    Прокачивает умения
+
+                                                    {
+                                                        React.createElement(exports.get('PriceData'), {
+                                                            onPriceEnter: _.editPrice.bind(_, 'edit', 'skills'),
+                                                            onRemPrice: _.editPrice.bind(_, 'rem', 'skills'),
+                                                            onAddPrice: _.editPrice.bind(_, 'add', 'skills'),
+                                                            price: _.state.comp.data.skills ?? {},
+                                                            default: 'strength',
+                                                            defaults: {
+                                                                craft: 'Крафт',
+                                                                trade: 'Торговля',
+                                                                battle: 'Сражение',
+                                                                command: 'Командование',
+                                                                control: 'Управление',
+                                                            }
+                                                        })
+                                                    }
                                                 </div>
                                             ]
                                         case 1:
                                             return [
-                                                // Стоимость
-                                                // Доход в день
                                                 <div class='auto-label'>
                                                     Стоимость
 
@@ -396,12 +518,22 @@ window.addEntryPage("businesses", (exports, emitter) => {
                                                         onChange={_.editData.bind(_)} 
                                                     />
                                                 </div>,
+
                                                 <div class='auto-label'>
                                                     Доход в день
 
-                                                    <textarea ref={e => _.update_needs.push(e)} title='Максимальная сумма которая может быть выплачена в день.'   name='income' class="auto_message" value={_.getFormatedData('income')} onChange={_.editData.bind(_)}>
-
-                                                    </textarea>
+                                                    {
+                                                        React.createElement(exports.get('PriceData'), {
+                                                            onPriceEnter: _.editPrice.bind(_, 'edit', 'income'),
+                                                            onRemPrice: _.editPrice.bind(_, 'rem', 'income'),
+                                                            onAddPrice: _.editPrice.bind(_, 'add', 'income'),
+                                                            price: _.state.comp.data.income ?? {},
+                                                            default: 'bans',
+                                                            defaults: {
+                                                                bans: 'Баны'
+                                                            }
+                                                        })
+                                                    }
                                                 </div>
                                             ]
                                         default: return [];

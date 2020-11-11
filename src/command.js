@@ -29,6 +29,21 @@ module.exports.CommandEmitter = class CommandEmitter {
         }
     }
 
+    async checkBan(user, emitter){
+        if(user.banned){
+            let ban = await user.getBanStatus();
+
+            emitter.reply("Невозможно обработать вашу команду т.к. эта возможность для вас была ограничена администра" + (ban != null && ban.initiator != null ? 'тором ' + ban.initiator  : 'цией') + (ban != null && ban.cause != null && ban.cause.length > 0 ? '\n\nПо причине: \n' + ban.cause : ''));
+            
+            // Удаляем пользорвателя
+            global.managers.user.removeConnection(user.id)
+
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Обрабатывает команду пользователя
      * 
@@ -39,17 +54,25 @@ module.exports.CommandEmitter = class CommandEmitter {
      * Ничего не возвращает, обрабатывает команду пользователя, послывая ответ в Emitter;
      * @see {@link CouplerEmitter.reply} для просмотра вариаций ответа
      */
-    handleCommand(command, user, emitter) {
+    async handleCommand(command, user, emitter) {
         global.managers.statistics.updateStat('messages_received', 1)
 
         if (typeof command === "string" && command.substring(0, global.params.command_emitter.command_prefix.length) === global.params.command_emitter.command_prefix && command.trim() != global.params.command_emitter.command_prefix){
-            global.managers.statistics.updateStat('commands_handled', 1)
+            if(await this.checkBan(user, emitter)) {
+                return;
+            } else {
+                global.managers.statistics.updateStat('commands_handled', 1)
 
-            this.secenario_manager.exec(new PushedCommand(command.substring(global.params.command_emitter.command_prefix.length)), user, emitter); // Передаем управление менеджеру сценариев
+                this.secenario_manager.exec(new PushedCommand(command.substring(global.params.command_emitter.command_prefix.length)), user, emitter); // Передаем управление менеджеру сценариев
+            }
         } else if(typeof command === "object"){
-            global.managers.statistics.updateStat('commands_handled', 1)
+            if(await this.checkBan(user, emitter)) {
+                return;
+            } else {
+                global.managers.statistics.updateStat('commands_handled', 1)
 
-            this.secenario_manager.exec(PushedCommand.fromPattern(command), user, emitter); // Передаем управление менеджеру сценариев
+                this.secenario_manager.exec(PushedCommand.fromPattern(command), user, emitter); // Передаем управление менеджеру сценариев
+            }
         } else {
             global.managers.user.removeConnection(user.id);
         }

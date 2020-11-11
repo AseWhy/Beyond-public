@@ -19,12 +19,15 @@ html(lang="ru")
         .box.logout#userlogout
         .box.header_cont
             .header
-                .button(data-page="common") Общая информация
-                .button(data-page="logs") Логи
-                .button(data-page="items") Предметы
-                .button(data-page="map") Карта
-                .button(data-page="districts") Районы
-                .button(data-page="businesses") Бизнесы и Работы
-                .button(data-page="users") Пользователи
-                .button(data-page="characters") Персонажи
+                .button(data-page="common", style='display: none', perm='STATISTICS') Общая информация
+                .button(data-page="logs", style='display: none', perm='LOGS') Логи
+                .button(data-page="items", style='display: none', perm='ITEMS') Предметы
+                .button(data-page="map", style='display: none', perm='MAP') Карта
+                .button(data-page="districts", style='display: none', perm='MAP') Районы
+                .button(data-page="businesses", style='display: none', perm='BUSINESSES') Бизнесы и Работы
+                .button(data-page="users", style='display: none', perm='USERS') Пользователи
+                .button(data-page="characters", style='display: none', perm='CHARACTERS') Персонажи
+                .button(data-page="origin", style='display: none', perm='ORIGINS') Происхождения
+                .button(data-page="binds", style='display: none', perm='BINDS') Планировщик
+                .button(data-page="super", style='display: none', perm='SUPER') Панель
       .box.bodytarget#bodytarget

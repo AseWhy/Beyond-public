@@ -1,4 +1,7 @@
-const Utils = require("../utils");
+const utils = require("../utils");
+
+const Utils = require("../utils"),
+      date = new Date();
 
 // Стандартная либа
 
@@ -7,18 +10,67 @@ module.exports = {
         global.common_logger.log(...args)
     },
 
+    gamedata: {
+        get(key){
+            return global.managers.data.getData(key) || new Object();
+        },
+
+        set(key, value){
+            global.managers.data.setData(key, value);
+        }
+    },
+
+    math: {
+        ceil(n) {
+            if(typeof n === 'number' && !isNaN(n))
+                return Math.ceil(n);
+            return null;
+        },
+
+        floor(n) {
+            if(typeof n === 'number' && !isNaN(n))
+                return Math.floor(n);
+            return null;
+        },
+
+        round(n){
+            if(typeof n === 'number' && !isNaN(n))
+                return Math.round(n);
+            return null;
+        },
+
+        abs(n){
+            if(typeof n === 'number' && !isNaN(n))
+                return Math.abs(n);
+            return null;
+        }
+    },
+
     keyboard: {
-        createKeyboard(namespace, buttons, color, concat_names = true, unregister_command = true){
+        createKeyboard(namespace, buttons, color, concat_names = true, unregister_command = true, own_line = false){
             if(buttons != null && buttons instanceof Array){
                 return buttons.map(e => ({
                         title: e,
                         color: color != null ? color : null,
+                        own_line: own_line,
                         payload: {
                             type: 'command',
                             data: (namespace + (concat_names ? ' ' + e : ''))[unregister_command ? 'toLowerCase' : 'trim']()
                         }
                     })
                 );
+            } else if(typeof buttons === 'string') {
+                return [
+                        {
+                        title: buttons,
+                        color: color != null ? color : null,
+                        own_line: own_line,
+                        payload: {
+                            type: 'command',
+                            data: (namespace + (concat_names ? ' ' + buttons : ''))[unregister_command ? 'toLowerCase' : 'trim']()
+                        }
+                    }
+                ]
             } else {
                 return null;
             }
@@ -244,19 +296,56 @@ module.exports = {
             return typeof o === 'number';
         },
 
-        to_ru_format(numb) {
-            return Utils.to_ru_number_value(numb);
+        to_game_price_format(numb, ed, ec = false) {
+            if(typeof numb === 'number' || typeof numb === 'bigint')
+                return utils.to_game_price_format(numb, ed, ec);
+            else
+                return '0';
+        },
+
+        to_locale_format(numb){
+            if(typeof numb === 'number' || typeof numb === 'bigint')
+                return numb.toLocaleString('ru-RU');
+            else
+                return '0';
         },
 
         to_ru_time_value(numb, dc = -1) {
-            return numb > 1000 ? Utils.to_ru_time_value(numb > 0 ? numb : 0, dc) : 'Всего ничего...';
+            if(typeof numb === 'number' || typeof numb === 'bigint')
+                return numb > 1000 ? Utils.to_ru_time_value(numb > 0 ? numb : 0, dc) : 'Всего ничего...';
+            else
+                return '0';
         },
 
         parseInt(numb){
-            return parseInt(numb);
+            return isNaN(numb = parseInt(numb)) ? null : numb;
         }
     },
     date: {
+        year(){
+            return date.getUTCFullYear();
+        },
+
+        month(){
+            return date.getUTCMonth();
+        },
+
+        day(){
+            return date.getUTCDay();
+        },
+
+        hours(){
+            return date.getUTCHours();
+        },
+
+        minutes(){
+            return date.getUTCMinutes();
+        },
+
+        seconds(){
+            return date.getUTCSeconds();
+        },
+
         now(){
             return Date.now()
         }

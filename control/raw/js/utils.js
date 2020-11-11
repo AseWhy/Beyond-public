@@ -214,6 +214,20 @@
             return out / l;
         },
 
+        renameProperty(o, on, nn){
+            let b = new Object();
+
+            for(let key in o){
+                if(key === on){
+                    b[nn] = o[key];
+                } else {
+                    b[key] = o[key];
+                }
+            }
+            
+            return b;
+        },
+
         conv_size(b){
             let fsize,
                 fsizekb = b / 1024,
@@ -239,9 +253,11 @@
         },
 
         now_date_format(){
-            const date = new Date();
+            return utils.date_format(new Date())
+        },
 
-            return date.getFullYear() + '-' + date.getMonth().toString().padStart(2, '0') + '-' + date.getDay().toString().padStart(2, '0') + 'T' + date.toLocaleTimeString().substring(0, 5)
+        date_format(date){
+            return date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + 'T' + date.getHours().toString().padStart(2, '0') + ":" + date.getMinutes().toString().padStart(2, '0')
         }
     }
 })(typeof module === "object" && typeof module.exports === "object" && module.exports || window)

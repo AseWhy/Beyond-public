@@ -1,4 +1,4 @@
-window.addEntryPage("common", (exports, emitter) => {
+window.addEntryPage("common", window.config.permissions.STATISTICS, (exports, emitter) => {
     // Update interval 1 min
     exports.set("updateInterval", 60000);
 
@@ -127,7 +127,7 @@ window.addEntryPage("common", (exports, emitter) => {
         }
 
         render(){
-            return <div class="table-common-cont">
+            return <div class="table-common-cont" disable={(window.api.session.user == null || (window.api.session.user.permissions & window.config.permissions.ACTIONS) == 0).toString()}>
                 <table class='auto-table'>
                     <tr>
                         <th>№</th>
@@ -256,7 +256,7 @@ window.addEntryPage("common", (exports, emitter) => {
         render(){
             const _ = this;
 
-            return <div class='sender-form-data'>
+            return <div class='sender-form-data' disable={(window.api.session.user == null || (window.api.session.user.permissions & window.config.permissions.MAILING) == 0).toString()}>
                 <div className="form-section-container" view={_.state.send_after_type}>
                     <select name="type" class='auto-select' value={_.state.send_data.type} onChange={_.changeSendData.bind(_)} disable={_.state.waiting.toString()}>
                         <option value="system" title='Будет разослано всем людям, когда-либо писавшим боту'>Системное сообщение</option>

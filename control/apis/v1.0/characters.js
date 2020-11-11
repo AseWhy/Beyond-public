@@ -42,9 +42,9 @@ module.exports = class Api extends API {
                     const results = await this.editCharacter(req.body.ident, req.body.data);
 
                     if(results.status !== "ok"){
-                        if(results.code === 0x0 || results.code === 0x1 || results.code === 0x2 || results.code === 0x3 || results.code === 0x4 || results.code === 0x6 || results.code === 0x8)
+                        if(results.code === 0x0 || results.code === 0x1 || results.code === 0x2 || results.code === 0x3 || results.code === 0x4 || results.code === 0x6 || results.code === 0x7 || results.code === 0x9)
                             res.status(403)
-                        else if(results.code === 0x7)
+                        else if(results.code === 0x8)
                             res.status(500)
 
                         results.code = undefined;
@@ -61,6 +61,34 @@ module.exports = class Api extends API {
                         message: "Error while excecutiong request"
                     }))
                 }
+            break;
+            case "rem":
+                try {
+                    const results = await this.removeCharacter(req.body.ident);
+
+                    if(results.status !== "ok"){
+                        res.status(500)
+
+                        results.code = undefined;
+                    } else {
+                        _.manager.addAction(user.id, "Server characters operation. Character " + req.body.ident + " has been removed");
+                    }
+
+                    res.end(JSON.stringify(results));
+                } catch (e){
+                    global.web_logger.error(e);
+
+                    res.status(500).end(JSON.stringify({
+                        status: "error",
+                        message: "Error while excecutiong request"
+                    }))
+                }
+            break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + req.body.function[0]
+                }))
             break;
         }
     }
@@ -120,7 +148,7 @@ module.exports = class Api extends API {
                     return {
                         status: "error",
                         code: 0x4,
-                        message: 'The map must have of type array, but give ' + (typeof data.scenario_state)
+                        message: 'The map must have of type array, but give ' + (typeof data.map)
                     }
             }
 
@@ -135,13 +163,24 @@ module.exports = class Api extends API {
                     }
             }
 
+            if(data.experience != null){
+                if(typeof data.experience === 'object' && (size = this.manager.roughSizeOfObject(data.experience)) < 10240)
+                    formated.experience = JSON.stringify(data.experience);
+                else
+                    return {
+                        status: "error",
+                        code: 0x6,
+                        message: 'The experience object must have maximum weight of 10 Kib(10240 bytes), but give ' + size
+                    }
+            }
+
             if(data.data != null){
                 if(typeof data.data === 'object' && (size = this.manager.roughSizeOfObject(data.data)) < 102400)
                     formated.data = JSON.stringify(data.data);
                 else
                     return {
                         status: "error",
-                        code: 0x6,
+                        code: 0x7,
                         message: 'The data object must have maximum weight of 100 Kib(102400 bytes), but give ' + size
                     }
             }
@@ -159,14 +198,14 @@ module.exports = class Api extends API {
 
                 return {
                     status: "error",
-                    code: 0x7,
+                    code: 0x8,
                     message: "Interanl server error"
                 }
             }
         } else {
             return {
                 status: "error",
-                code: 0x8,
+                code: 0x9,
                 message: "No initial data transmitted."
             }
         }
@@ -218,12 +257,13 @@ module.exports = class Api extends API {
 
             if(characters.length > 0) {
                 for(let i = 0, leng = characters.length;i < leng;i++){
-                    characters[i].map           = characters[i].map         != null ? characters[i].map.split('/')                      : new Array();
                     characters[i].inventory     = characters[i].inventory   != null ? JSON.parse(characters[i].inventory)               : null;
-                    characters[i].businesses    = characters[i].businesses  != null ? characters[i].businesses.split(',')               : null;
-                    characters[i].businesses    = characters[i].own         != null ? characters[i].own.split(',')                      : null;
                     characters[i].data          = characters[i].data        != null ? JSON.parse(characters[i].data)                    : null;
+                    characters[i].experience    = characters[i].experience  != null ? JSON.parse(characters[i].experience)              : null;
+                    characters[i].businesses    = characters[i].businesses  != null ? characters[i].businesses.split(',')               : null;
+                    characters[i].own           = characters[i].own         != null ? characters[i].own.split(',')                      : null;
                     characters[i].busts         = characters[i].busts       != null ? characters[i].busts.split(',')                    : null;
+                    characters[i].map           = characters[i].map         != null ? characters[i].map.split('/')                      : new Array();
                     characters[i].sex           = characters[i].sex         != null ? characters[i].sex[0] === 0 ? 'Male' : 'Female'    : null;
                     characters[i].owner         = characters[i].owner       != null ? parseInt(characters[i].owner)                     : null;
                 }
@@ -244,6 +284,24 @@ module.exports = class Api extends API {
             return {
                 status: "error",
                 code: 0x2,
+                message: "Error while executing request"
+            };
+        }
+    }
+
+    async removeCharacter(ident){
+        try {
+            await this.manager.query("common", sql.deleteFrom('characters').where('id', ident).toString());
+
+            return {
+                status: 'ok'
+            }
+        } catch (e) {
+            global.web_logger.error(e);
+
+            return {
+                status: "error",
+                code: 0x0,
                 message: "Error while executing request"
             };
         }

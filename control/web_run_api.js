@@ -77,6 +77,10 @@ module.exports.WebRunApi = class WebRunApi {
                 global.web_logger.log("action recording completed, 0 actions recorded")
         }, 1000 * 60 * 5); // 5 minutes
     }
+    
+    hasPermission(user, perm){
+        return user.permissions === -1 || (user.permissions & perm) != 0;
+    }
 
     roughSizeOfObject( object ) {
         let objectList = [],

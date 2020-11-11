@@ -1,4 +1,4 @@
-window.addEntryPage("items", (exports, emitter) => {
+window.addEntryPage("items", window.config.permissions.ITEMS, (exports, emitter) => {
     // Ui variables
     exports.set('AddRow', class AddRow extends React.Component {
         constructor(props){
@@ -32,7 +32,7 @@ window.addEntryPage("items", (exports, emitter) => {
                 return;
             }
 
-            await window.api.item.set({named_id: this.state.ident, display: this.state.display});
+            await window.api.items.items.set({named_id: this.state.ident, display: this.state.display});
             
             this.setState({display: "", ident: ""})
 
@@ -146,7 +146,7 @@ window.addEntryPage("items", (exports, emitter) => {
 
         async save(){
             try {
-                await window.api.item.types.edit(c, _.state.types.get(c));
+                await window.api.items.types.edit(c, _.state.types.get(c));
 
                 emitter.emit('UPDATE_FILTERED_LIST');
 
@@ -178,7 +178,7 @@ window.addEntryPage("items", (exports, emitter) => {
             let name;
 
             if(this.type_name.current && (name = this.type_name.current.value.trim()) != "") {
-                const s = await window.api.item.types.add({ display: name });
+                const s = await window.api.items.types.add({ display: name });
 
                 this.state.types.set(s.ident, { id: s.ident, display: name, description: "", fields: [] })
 
@@ -192,7 +192,7 @@ window.addEntryPage("items", (exports, emitter) => {
     
         async rmRow(i){
             if (confirm("Удалить " + this.state.types.get(i).display + "?")) {
-                await window.api.item.types.remove(i);
+                await window.api.items.types.remove(i);
 
                 emitter.emit('UPDATE_FILTERED_LIST') 
             }
@@ -358,7 +358,7 @@ window.addEntryPage("items", (exports, emitter) => {
                         return;
                     }
 
-                    await window.api.item.edit(this.state_heap.named_id, {
+                    await window.api.items.items.edit(this.state_heap.named_id, {
                         named_id: this.state.named_id,
                         type: this.state.type,
                         display: this.state.display,
@@ -404,7 +404,7 @@ window.addEntryPage("items", (exports, emitter) => {
 
         async removeInfo(e){
             if (confirm("Удалить " + this.state.display + "?")) {
-                await window.api.item.remove(this.state.named_id);
+                await window.api.items.items.remove(this.state.named_id);
 
                 emitter.emit('UPDATE_FILTERED_LIST');
             }
@@ -511,7 +511,7 @@ window.addEntryPage("items", (exports, emitter) => {
     }, update = async e => {
         try {
             render(
-                await window.api.item.get({
+                await window.api.items.items.get({
                     contains: {
                         operator: "or",
                         data: [

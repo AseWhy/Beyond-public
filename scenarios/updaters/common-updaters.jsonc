@@ -11,6 +11,29 @@
         {
             "type": "excecute",
             "break_on": true,
+            "condition": "character.endurance.value = character.endurance.max & character.health.value = character.health.max",
+            "entries": [
+                { 
+                    "type": "write",
+                    "message": [
+                        "[СИСТЕМА]\n",
+                        "Вы отдохнули и набрались сил. Время вкалывать!"
+                    ],
+                    "condition": "character.data.house_fired"
+                },
+                {
+                    "type": "character",
+                    "field": "data",
+                    "data": {
+                        "house_fired": "false"
+                    },
+                    "condition": "character.data.house_fired"
+                }
+            ]
+        },
+        {
+            "type": "excecute",
+            "break_on": true,
             "condition": "zone.name = 'Палатка'",
             "entries": [
                 {

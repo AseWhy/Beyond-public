@@ -1,5 +1,3 @@
-const sql = require("sql-bricks");
-
 /**
  * Стадия исполнения сценария
  * 
@@ -7,11 +5,17 @@ const sql = require("sql-bricks");
  * @see {@link ../managers/scenario-manager.js} для подробной информации где используется
  */
 module.exports.ExcecutionState = class ExcecutionState {
-    constructor(user, id, state, data){
-        this.user = user;
+    constructor(id, state, data, user){
         this.id = id;
         this.state = state;
         this.data = data != null ? JSON.parse(data) : data;
+        this.user = user;
+    }
+
+    pushState(c){
+        this.state += c != undefined ? c : 1;
+
+        this.user.addChange('state');
     }
 
     editLabels(data){
@@ -21,30 +25,14 @@ module.exports.ExcecutionState = class ExcecutionState {
             else
                 throw new Error("The key " + key + " not a found!");
 
-        return this.update();
+        this.user.addChange('state');
     }
 
-    setScenario(scenario){
-        this.id = scenario;
-
-        return this.update();
-    }
-
-    setData(key, value){
-        this.data[key] = value;
-
-        return this.update();
-    }
-
-    pushState(state){
-        this.state += state !== undefined ? state : 1;
-
-        return this.update();
-    }
-
-    async update(){
-        await global.managers.pool.sql( "common", sql.update('users', { scenario: this.id, scenario_state: this.state, scenario_data: JSON.stringify(this.data)}).where(sql.like('id', this.user.id)).toString())
-
-        return this;
+    toSubFields(){
+        return {
+            scenario: this.id,
+            scenario_state: this.state,
+            scenario_data: JSON.stringify(this.data).replace(/\\/g, '\\\\')
+        }
     }
 }

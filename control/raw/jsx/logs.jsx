@@ -1,4 +1,4 @@
-window.addEntryPage("logs", (exports, emitter) => {
+window.addEntryPage("logs", window.config.permissions.LOGS, (exports, emitter) => {
     const line_pattern = /^\[(\w+)\]\s*\[?([0-9\sAMP:]+)?\]?(.*)$/m,
           subline_pattern = /^>[^\n]*$/m;
 

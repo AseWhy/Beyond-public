@@ -1,0 +1,8 @@
+.denied {
+    width: 100%;
+    line-height: 1em;
+    font-size: 2.5em;
+    padding: 0.5em;
+    text-align: center;
+    color: var(--danger-text-color);
+}

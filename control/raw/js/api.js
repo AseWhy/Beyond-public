@@ -4,6 +4,7 @@
             this.token = null;
             this.password = password;
             this.login = login;
+            this.user = null;
         }
     
         setToken(token){
@@ -12,6 +13,57 @@
             else
                 throw new TypeError("The token data must be string.");
         }
+    }
+
+    class SuperRolesApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        add(data, progress) { return this.api.call('super.roles.add', {data}, progress) }
+
+        remove (ident, progress) { return this.api.call('super.roles.rem', {ident}, progress) }
+
+        get (filter, progress) { return this.api.call('super.roles.get', {filter}, progress) }
+
+        edit (ident, data, progress) { return this.api.call('super.roles.edt', {ident, data}, progress) }
+    }
+
+    class SuperUsersApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        add(data, progress) { return this.api.call('super.users.add', {data}, progress) }
+
+        remove (ident, progress) { return this.api.call('super.users.rem', {ident}, progress) }
+
+        get (filter, progress) { return this.api.call('super.users.get', {filter}, progress) }
+
+        edit (ident, data, progress) { return this.api.call('super.users.edt', {ident, data}, progress) }
+    }
+
+    class SuperApi {
+        constructor(api){
+            this.api = api;
+
+            this.roles = new SuperRolesApi(api);
+            this.users = new SuperUsersApi(api);
+        }
+    }
+
+    class OriginsApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        add(data, progress) { return this.api.call('origins.add', {data}, progress) }
+
+        remove (ident, progress) { return this.api.call('origins.rem', {ident}, progress) }
+
+        get (filter, progress) { return this.api.call('origins.get', {filter}, progress) }
+
+        edit (ident, data, progress) { return this.api.call('origins.edt', {ident, data}, progress) }
     }
 
     class CharactersApi {
@@ -57,9 +109,9 @@
             this.api = api;
         }
 
-        get (progress) { return this.api.call("map.get.districts", {}, progress) }
+        get (progress) { return this.api.call("map.districts.get", {}, progress) }
     
-        set (districts, progress) { return this.api.callProgress("map.set.districts", {districts}, progress) }
+        set (districts, progress) { return this.api.callProgress("map.districts.set", {districts}, progress) }
     }
 
     class ProvincesMapApi {
@@ -67,22 +119,41 @@
             this.api = api;
         }
 
-        get (owner, progress) { return this.api.call("map.get.provinces", {owner}, progress) }
+        get (owner, progress) { return this.api.call("map.provinces.get", {owner}, progress) }
     
-        set (provinces, owner, progress) { return this.api.callProgress("map.set.provinces", {provinces, owner}, progress) }
+        set (provinces, owner, progress) { return this.api.callProgress("map.provinces.set", {provinces, owner}, progress) }
     }
     
+    class MapCommonApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        get (id, progress) { return this.api.call("map.map.get", {id}, progress) }
+    
+        set (map, progress) { return this.api.callProgress("map.map.set", {map}, progress) }
+    }
+
     class MapApi {
         constructor(api){
             this.api = api;
 
             this.districts = new DistrictsMapApi(api);
             this.provinces = new ProvincesMapApi(api);
+            this.map = new MapCommonApi(api);
         }
-    
-        get (id, progress) { return this.api.call("map.get", {id}, progress) }
-    
-        set (map, progress) { return this.api.callProgress("map.set", {map}, progress) }
+    }
+
+    class BindsApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        get (data, progress) { return this.api.call('binds.get', {data}, progress) }
+
+        remove (ident, progress) { return this.api.call('binds.rem', {ident}, progress) }
+
+        edit (ident, data, progress) { return this.api.call('binds.edt', {ident, data}, progress) }
     }
 
     class ItemTypesApi {
@@ -96,34 +167,46 @@
 
         edit (ident, data, progress) { return this.api.call('items.types.edt', {ident, data}, progress) }
     }
+
+    class ItemCommonApi {
+        constructor(api){
+            this.api = api;
+        }
+
+        set (data, progress) { return this.api.call('items.items.set', {data}, progress) }
     
-    class ItemApi {
+        get (filter, progress) { return this.api.call('items.items.get', {filter}, progress) }
+    
+        remove (named_id, progress) { return this.api.call('items.items.rem', {named_id}, progress) }
+
+        edit (named_id, data, progress) { return this.api.call('items.items.edt', {named_id, data}, progress) }
+    }
+    
+    class ItemsApi {
         constructor(api){
             this.api = api;
 
             this.types = new ItemTypesApi(api);
+            this.items = new ItemCommonApi(api);
         }
-    
-        set (data, progress) { return this.api.call('items.set', {data}, progress) }
-    
-        get (filter, progress) { return this.api.call('items.get', {filter}, progress) }
-    
-        remove (named_id, progress) { return this.api.call('items.rem', {named_id}, progress) }
-
-        edit (named_id, data, progress) { return this.api.call('items.edt', {named_id, data}, progress) }
     }
     
     
     exporter.api = new class BeyondAdminAPI {
         constructor(){
             this.version = `v1.0`;
+            this.origin = window.location.host;
+            this.protocol = window.location.protocol;
             this.session = null;
     
             this.map = new MapApi(this);
-            this.item = new ItemApi(this);
+            this.items = new ItemsApi(this);
             this.businesses = new BusinessesApi(this);
             this.users = new UsersApi(this);
             this.characters = new CharactersApi(this);
+            this.origins = new OriginsApi(this);
+            this.super = new SuperApi(this);
+            this.binds = new BindsApi(this);
         }
     
         async callProgress(func, data = {}, progress) {
@@ -265,7 +348,17 @@
                 throw e;
             }
         }
-    
+        
+        getPathToApiResource(func, params){
+            let data = [];
+
+            for(let key in params){
+                data.push(key + '=' + params[key]);
+            }
+
+            return `${this.protocol}//${this.origin}/api/${this.version}/?function=web.${func}&token=${this.session.token}&${data.join('&')}`; 
+        }
+
         async auth(login, password){
             if(login == null || password == null)
                 throw new TypeError('Login data not transmitted');
@@ -274,6 +367,7 @@
     
             if(successful = await this.call("login", { login, password })){
                 this.session = session;
+
                 this.session.setToken(successful.token);
 
                 return this;

@@ -1,4 +1,4 @@
-window.addEntryPage("users", (exports, emitter) => {
+window.addEntryPage("users", window.config.permissions.USERS, (exports, emitter) => {
     const CommandNumberPattern  = /^[-+]?([0-9]*\.[0-9]+|[0-9]+)$/m;
 
     function clone(obj){
@@ -22,7 +22,22 @@ window.addEntryPage("users", (exports, emitter) => {
                 _.search();
             }) && this;
 
-            _.search();
+            await _.search();
+
+            const target = window.location.hash.split('~');
+
+            if(target[1] != null) {
+                const user = this.getUserById(target[1]);
+
+                if(target != null){
+                    this.setState({waiting: false, current: user.index});
+
+                    emitter.emit('UPDATE_SELECTION', this.state.users[user.index]);
+                } else {
+                    emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Не удалось найти персонажа с id ' + target[1], 'error');
+                }
+            } else
+                this.setState({waiting: false});
         }
 
         async search(){
@@ -49,6 +64,17 @@ window.addEntryPage("users", (exports, emitter) => {
             emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Успешно!', 'tip');
             
             this.setState({waiting: false});
+        }
+        
+        getUserById(id){
+            for(let i = 0, leng = this.state.users.length; i < leng; i++){
+                if(this.state.users[i].id == id){
+                    return {
+                        user: this.state.users[i],
+                        index: i
+                    };
+                }
+            }
         }
 
         showInfo(e){
@@ -79,9 +105,9 @@ window.addEntryPage("users", (exports, emitter) => {
                                     <li class={"users-row-auto" + (_.state.current == i ? ' selected' : '')} index={i} onClick={_.showInfo.bind(_)}>
                                         <td class='table-unit'>{e.id}</td>
                                         <td class='table-unit'>{e.character != null ? e.character.name : 'Нет персонажа'}</td>
-                                        <td class='table-unit'>{e.banned ? 'Забанен' : 'Законопослушный'}</td>
+                                        <td class='table-unit'>{e.ban != null && e.ban.status ? 'Забанен' : 'Законопослушный'}</td>
                                         <td class='table-unit'>{e.registered ? 'Игрок' : 'Гость'}</td>
-                                        <td class='table-unit'>{e.notify ? 'Уведомления разрешил' : 'Уведомления запретил'}</td>
+                                        <td class='table-unit'>{e.scenario}</td>
                                     </li>
                                 )
                             } else {
@@ -130,25 +156,7 @@ window.addEntryPage("users", (exports, emitter) => {
         }
 
         hasChanges(){
-            if(
-                this.state.user.name != this.state_heap.user.name ||
-                this.state.user.scenario != this.state_heap.user.scenario ||
-                this.state.user.scenario_state != this.state_heap.user.scenario_state ||
-                this.state.user.registered != this.state_heap.user.registered ||
-                this.state.user.banned != this.state_heap.user.banned ||
-                this.state.user.notify != this.state_heap.user.notify
-            )
-                return true;
-            
-            for(let key in this.state.user.scenario_data)
-                if (this.state_heap.user.scenario_data[key] == null || this.state_heap.user.scenario_data[key] != this.state.user.scenario_data[key])
-                    return true;
-
-            for(let key in this.state_heap.user.scenario_data)
-                if (this.state.user.scenario_data[key] == null || this.state_heap.user.scenario_data[key] != this.state.user.scenario_data[key])
-                    return true;
-
-            return false;
+            return JSON.stringify(this.state.user) != JSON.stringify(this.state_heap.user);
         }
 
         componentDidMount(){
@@ -163,7 +171,7 @@ window.addEntryPage("users", (exports, emitter) => {
                         scenario: user.scenario ?? '',
                         scenario_state: user.scenario_state ?? 0,
                         registered: user.registered === true,
-                        banned: user.banned === true,
+                        ban: user.ban ?? {status: false, cause: null, initiator: null},
                         notify: user.notify === true,
                         created: new Date(user.created),
                         updated: new Date(user.updated),
@@ -193,13 +201,31 @@ window.addEntryPage("users", (exports, emitter) => {
         }
 
         editUser(e){
-            if(e.target.tagName == 'SELECT'){
+            if(e.target.tagName == 'SELECT' || (e.target.tagName === 'INPUT' && e.target.type === 'number')){
                 this.state.user[e.target.name] = parseInt(e.target.value)
             } else if(e.target.tagName == 'INPUT' && e.target.type == 'checkbox') {
                 this.state.user[e.target.name] = e.target.checked
             } else {
                 this.state.user[e.target.name] = e.target.value
             }
+
+            this.setState({user: this.state.user});
+        }
+
+        editBan(e){
+            switch(e.target.name){
+                case "status":
+                    this.state.user.ban.status = e.target.checked;
+                break;
+                case "cause":
+                    this.state.user.ban.cause = e.target.value;
+                break;
+                case "initiator":
+                    this.state.user.ban.initiator = e.target.value;
+                break;
+            }
+
+            console.log(this.state.user.ban)
 
             this.setState({user: this.state.user});
         }
@@ -240,6 +266,46 @@ window.addEntryPage("users", (exports, emitter) => {
             delete this.state.user.scenario_data[e.target.getAttribute('target')];
 
             this.setState({user: this.state.user});
+        }
+
+        async removeUser(){
+            if(window.confirm('Вы уверены что хотите удалить ' + this.state.user.id)){
+                await api.users.remove(this.state.user.id);
+
+                this.setState({user: null})
+
+                emitter.emit('UPDATE_LIST_ACTION');
+
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Успешно удален!', 'tip');
+            }
+        }
+
+        async removeUserCharacter(){
+            if(window.confirm('Вы уверены что хотите удалить персонажа пользователя ' + this.state.user.id)){
+                await api.characters.remove(this.state.user.character.id);
+
+                this.state.user.scenario = 'null';
+                this.state.user.scenario_data = {};
+                this.state.user.scenario_state = 0;
+
+                await svComp();
+
+                this.setState({user: {...this.state.user, character: {}}})
+
+                emitter.emit('UPDATE_LIST_ACTION');
+
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'Успешно удален!', 'tip');
+            }
+        }
+
+        goToCharacter(){
+            if(this.state.user.character && this.state.user.character.id){
+                window.location.hash = 'characters~' + this.state.user.character.id;
+
+                window.loadPage('characters');
+            } else {
+                emitter.emit('DISPLAY_MESSAGE_UPDATE', 'У этого пользователя нет персонажа.', 'tip');
+            }
         }
 
         render(){
@@ -326,15 +392,60 @@ window.addEntryPage("users", (exports, emitter) => {
                                     <label for="properties-notify" class='auto-checkbox'></label>
                                         Статус уведомлений
                                 </div>,
-                                <div class='checkbox-common-cont'>
-                                    <input type="checkbox" name="banned" checked={_.state.user.banned} onChange={_.editUser.bind(_)} id="properties-banned"/>
-                                    <label for="properties-banned" class='auto-checkbox'></label>
-                                        Статус бана
-                                </div>,
+                                    (() => {
+                                        if(_.state.user.ban.status){
+                                            return <div class='includes-base-cont'>
+                                                    <div class='checkbox-common-cont'>
+                                                        <input type="checkbox" name="status" checked={_.state.user.ban.status} onChange={_.editBan.bind(_)} id="properties-ban-status"/>
+                                                        <label for="properties-ban-status" class='auto-checkbox'></label>
+                                                            Статус бана
+                                                    </div>
+
+                                                    <div class='auto-label' disable='true'>
+                                                        Инициатор бана
+
+                                                        <input 
+                                                            type="text" 
+                                                            title='Инициатор бана' 
+                                                            class="auto-input" 
+                                                            value={_.state.user.ban.initiator ?? api.session.user.display_name} 
+                                                        />
+                                                    </div>
+
+                                                    <div class='auto-label'>
+                                                        Причина бана (опционально)
+                    
+                                                        <textarea ref={e => _.update_needs.push(e)} title='Причина, по которой доступ к боту пользователю был закрыт.' name='cause' class="auto_message" value={_.state.user.ban.cause ?? ''} placeholder='...' maxLength='500' onChange={_.editBan.bind(_)}>
+    
+                                                        </textarea>
+                                                    </div>
+                                            </div>
+                                        } else return <div class='checkbox-common-cont'>
+                                            <input type="checkbox" name="status" checked={_.state.user.ban.status} onChange={_.editBan.bind(_)} id="properties-ban-status"/>
+                                            <label for="properties-ban-status" class='auto-checkbox'></label>
+                                                Статус бана
+                                        </div>
+                                    })()
+                                ,
                                 (() => {
                                     if(_.hasChanges())
                                         return <button class='button-statement' onClick={_.svComp.bind(_)}>
                                             Сохранить {_.state.user.id}
+                                        </button>
+                                })(),
+                                (() => {
+                                    if(this.state.user.character && _.state.user.character.id != null)
+                                        return <button class='button-statement' onClick={_.goToCharacter.bind(_)}>
+                                            Перейти к {_.state.user.character.name}
+                                        </button>
+                                })(),
+                                <button class='button-danger' onClick={_.removeUser.bind(_)}>
+                                    Удалить {_.state.user.id}
+                                </button>,
+                                (() => {
+                                    if(this.state.user.character && _.state.user.character.id != null)
+                                        return <button class='button-danger' onClick={_.removeUserCharacter.bind(_)}>
+                                            Удалить {_.state.user.character.name}
                                         </button>
                                 })()
                             ]

@@ -17,100 +17,108 @@ module.exports = class Api extends API {
         res.setHeader('Content-Type', 'application/json; charset=utf-8')
 
         switch(req.body.function[0]){
-            case "get":
-                try {
-                    const results = await this.getItem(req.body.filter);
+            case "items":
+                switch(req.body.function[1]){
+                    case "get":
+                        try {
+                            const results = await this.getItem(req.body.filter);
 
-                    if(results.status !== "ok"){
-                        if(results.code === 0x0 || results.code === 0x1)
-                            res.status(403)
-                        else if(results.code === 0x2)
-                            res.status(500)
+                            if(results.status !== "ok"){
+                                if(results.code === 0x0 || results.code === 0x1)
+                                    res.status(403)
+                                else if(results.code === 0x2)
+                                    res.status(500)
 
-                        results.code = undefined;
-                    }
+                                results.code = undefined;
+                            }
 
-                    res.end(JSON.stringify(results));
-                } catch (e){
-                    res.status(500).end(JSON.stringify({
-                        status: "error",
-                        message: "Error while excecutiong request"
-                    }))
+                            res.end(JSON.stringify(results));
+                        } catch (e){
+                            res.status(500).end(JSON.stringify({
+                                status: "error",
+                                message: "Error while excecutiong request"
+                            }))
+                        }
+                    break;
+                    case "set":
+                        try {
+                            const results = await this.setItem(req.body.data);
+
+                            if(results.status !== "ok"){
+                                if(results.code === 0x0 || results.code === 0x1)
+                                    res.status(500)
+                                else
+                                    res.status(403)
+
+                                results.code = undefined;
+                            } else {
+                                _.manager.addAction(user.id, "Server item operation. Item " + req.body.data.named_id + ' installation', req.body.data);
+                            }
+
+                            res.end(JSON.stringify(results));
+
+                            _.update();
+                        } catch (e){
+                            res.status(500).end(JSON.stringify({
+                                status: "error",
+                                message: "Error while excecutiong request"
+                            }))
+                        }
+                    break;
+                    case "rem":
+                        try {
+                            const results = await this.remItem(req.body.named_id);
+
+                            if(results.status !== "ok"){
+                                res.status(500)
+
+                                results.code = undefined;
+                            } else {
+                                _.manager.addAction(user.id, "Server item operation. Item " + req.body.named_id + ' removed', {id: req.body.named_id});
+                            }
+
+                            res.end(JSON.stringify(results));
+
+                            _.update();
+                        } catch (e){
+                            res.status(500).end(JSON.stringify({
+                                status: "error",
+                                message: "Error while excecutiong request"
+                            }))
+                        }
+                    break;
+                    case "edt":
+                        try {
+                            const results = await this.edtItem(req.body.named_id, req.body.data);
+
+                            if(results.status !== "ok"){
+                                res.status(500)
+
+                                results.code = undefined;
+                            } else {
+                                _.manager.addAction(user.id, "Server item operation. Item " + req.body.named_id + ' edited', {id: req.body.data});
+                            }
+
+                            res.end(JSON.stringify(results));
+
+                            _.update();
+                        } catch (e){
+                            res.status(500).end(JSON.stringify({
+                                status: "error",
+                                message: "Error while excecutiong request"
+                            }))
+                        }
+                    break;
+                    default: 
+                        res.status(403).end(JSON.stringify({
+                            status: "error",
+                            message: "Unknown root function " + req.body.function[1]
+                        }))
+                    break;
                 }
-            break;
-            case "set":
-                try {
-                    const results = await this.setItem(req.body.data);
-
-                    if(results.status !== "ok"){
-                        if(results.code === 0x0 || results.code === 0x1)
-                            res.status(500)
-                        else
-                            res.status(403)
-
-                        results.code = undefined;
-                    } else {
-                        _.manager.addAction(user.id, "Server item operation. Item " + req.body.data.named_id + ' installation', req.body.data);
-                    }
-
-                    res.end(JSON.stringify(results));
-
-                    _.update();
-                } catch (e){
-                    res.status(500).end(JSON.stringify({
-                        status: "error",
-                        message: "Error while excecutiong request"
-                    }))
-                }
-            break;
-            case "rem":
-                try {
-                    const results = await this.remItem(req.body.named_id);
-
-                    if(results.status !== "ok"){
-                        res.status(500)
-
-                        results.code = undefined;
-                    } else {
-                        _.manager.addAction(user.id, "Server item operation. Item " + req.body.named_id + ' removed', {id: req.body.named_id});
-                    }
-
-                    res.end(JSON.stringify(results));
-
-                    _.update();
-                } catch (e){
-                    res.status(500).end(JSON.stringify({
-                        status: "error",
-                        message: "Error while excecutiong request"
-                    }))
-                }
-            break;
-            case "edt":
-                try {
-                    const results = await this.edtItem(req.body.named_id, req.body.data);
-
-                    if(results.status !== "ok"){
-                        res.status(500)
-
-                        results.code = undefined;
-                    } else {
-                        _.manager.addAction(user.id, "Server item operation. Item " + req.body.named_id + ' edited', {id: req.body.data});
-                    }
-
-                    res.end(JSON.stringify(results));
-
-                    _.update();
-                } catch (e){
-                    res.status(500).end(JSON.stringify({
-                        status: "error",
-                        message: "Error while excecutiong request"
-                    }))
-                }
-            break;
+            break
             case "types":
-                req.body.function.splice(0, 1);
-
-                switch(req.body.function[0]){
+                switch(req.body.function[1]){
                     case "add":
                         try {
                             const results = await this.addType(req.body.data);
@@ -181,7 +189,19 @@ module.exports = class Api extends API {
                             }))
                         }
                     break;
+                    default: 
+                        res.status(403).end(JSON.stringify({
+                            status: "error",
+                            message: "Unknown root function " + req.body.function[1]
+                        }))
+                    break;
                 }
+            break;
+            default: 
+                res.status(403).end(JSON.stringify({
+                    status: "error",
+                    message: "Unknown root function " + req.body.function[0]
+                }))
             break;
         }
     }

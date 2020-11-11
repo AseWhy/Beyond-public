@@ -30,18 +30,18 @@ module.exports.UpdateManager = class UpdateManager {
         _.updater = this.update.bind(this);
         _.date = new Date();
 
-        setTimeout(_.updater, _.default_update_interval, performance.now());
+        if(config.allow == null || config.allow == true)
+            setTimeout(_.updater, _.default_update_interval, performance.now());
     }
 
     async update(lastcall){
         let timeshot = performance.now(),
+            // Время начала операции
+            timestart = performance.now(),
             // Тайминги
             timings = new Array(),
             // Получаю всех пользователей, чья активность была как максимум неделю назад
-            data = await global.managers.pool.sql('common', 'SELECT users.id as u_id, users.registered as u_registred, users.banned as u_banned, users.scenario as u_scenario, users.notify as u_notify, users.created as u_created, users.updated as u_updated, characters.* FROM users, characters WHERE users.id LIKE characters.owner AND characters.updated >= \'' + (this.date.setTime(Date.now() - 604800000) && this.date.toISOString().slice(0, 19).replace('T', ' ')) + '\'')
-
-        // Начинаю цикл обновления пользователей
-        global.common_logger.log("Starts next update iteration. Overdue by " + (timeshot - lastcall).toFixed(2) + 'ms');
+            data = await global.managers.pool.sql('common', 'SELECT users.id as u_id, users.keyboard as u_keyboard, users.registered as u_registred, users.banned as u_banned, users.scenario as u_scenario, users.notify as u_notify, users.created as u_created, users.updated as u_updated, characters.* FROM users, characters WHERE users.id LIKE characters.owner AND characters.updated >= \'' + (this.date.setTime(Date.now() - 604800000) && this.date.toISOString().slice(0, 19).replace('T', ' ')) + '\'')
 
         // Фасовка пользователей
         for(let i = 0, leng = data.length, user, character; i < leng; i++){
@@ -79,7 +79,7 @@ module.exports.UpdateManager = class UpdateManager {
             // В случае, если транзакция прошла неудачно, мы её повторяем.
             await (async function RetryTransaction(step){
                 if(step > global.params.max_transaction_attempts){
-                    global.common_logger.ward("The number of attempts to overwrite users has exceeded the maximum allowed. Transfer failed.");
+                    global.common_logger.warn("The number of attempts to overwrite users has exceeded the maximum allowed. Transfer failed.");
 
                     global.managers.statistics.updateStat('errors_managers', 1)
                 } else {
@@ -93,13 +93,15 @@ module.exports.UpdateManager = class UpdateManager {
                         global.managers.statistics.updateStat('errors_managers', 1)
 
                         // Повторяем запрос, если тот прошел неудачно
-                        RetryTransaction(step + 1);
+                        await RetryTransaction(step + 1);
                     }
                 }
             })(0);
 
         // Бинд следующего обновления
         setTimeout(this.updater,  timings[0] != undefined ? timings[0] - (performance.now() - timeshot) : this.default_update_interval  - (performance.now() - timeshot), performance.now());
+        
+        global.managers.statistics.updateStat('total_update_av_time', performance.now() - timestart)
     }
 
     clear(namespace){

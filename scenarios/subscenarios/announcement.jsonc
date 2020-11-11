@@ -9,6 +9,12 @@
     },
     "condition": "false", // Можно только насильно перевести
     "entries": [
+        { // Завершаем сценарий
+            "type": "scenario",
+            "order": "drop",
+            "target": "'info-transfer'", 
+            "condition": "command.header = 'помощь' | command.header = 'информация' | command.header = 'персонаж' | command.header = 'паспорт'"
+        },
         {   // Завершаем сценарий
             "type": "excecute",
             "condition": "command.header = 'выйти'",
@@ -23,7 +29,7 @@
                             "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nКажется это тупик и идти дальше некуда... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
                         "}"
                     ],
-                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', 'Выйти', 'RED', true, true)) : keyboard.createKeyboard('город', 'Выйти', 'RED', true, true, true)) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'GREEN'), keyboard.createKeyboard('город', 'Выйти', 'RED', true, true, true))"
                 },
                 { // Завершаем сценарий
                     "type": "scenario",
@@ -44,15 +50,15 @@
             "keyboard": [
                 {
                     "title": "Выйти",
-                    "color": "GREEN",
+                    "color": "RED",
                     "payload": {"header": "выйти", "data": []}
                 }
             ],
-            "condition": "state.state = 0"
+            "condition": "user.state.state = 0"
         },
         {   // Перемещение
             "type": "excecute",
-            "condition": "state.state = 1",
+            "condition": "user.state.state = 1",
             "break_on": true,
             "prepare": "set message = strings.trim(strings.join(command.arg, null, ' '))",
             "entries": [
@@ -67,7 +73,7 @@
                     "keyboard": [
                         {
                             "title": "Выйти",
-                            "color": "GREEN",
+                            "color": "RED",
                             "payload": {"header": "выйти", "data": []}
                         }
                     ],
@@ -99,12 +105,13 @@
                         },
                         {
                             "title": "Нет",
-                            "color": "RED",
+                            "color": "BLUE",
                             "payload": {"header": "нет", "data": []}
                         },
                         {
                             "title": "Выйти",
-                            "color": "GREEN",
+                            "color": "RED",
+                            "own_line": true,
                             "payload": {"header": "выйти", "data": []}
                         }
                     ],
@@ -124,16 +131,16 @@
             "keyboard": [
                 {
                     "title": "Выйти",
-                    "color": "GREEN",
+                    "color": "RED",
                     "payload": {"header": "выйти", "data": []}
                 }
             ],
-            "condition": "state.state = 2 & command.header = 'нет'"
+            "condition": "user.state.state = 2 & command.header = 'нет'"
         },
         { // Перемещение
             "type": "excecute",
-            "condition": "state.state = 2 & command.header = 'да'",
-            "prepare": "set options = map.getCurrentDistrictOptions(character); set target = strings.unregister(strings.join(arrays.slice(command.arg, 1), null, ' '));set key = strings.getUniqueIdent(); set post = objects.create();post = objects.set(post, key, state.data.announcement)",
+            "condition": "user.state.state = 2 & command.header = 'да'",
+            "prepare": "set options = map.getCurrentDistrictOptions(character); set target = strings.unregister(strings.join(arrays.slice(command.arg, 1), null, ' '));set key = strings.getUniqueIdent(); set post = objects.create();post = objects.set(post, key, user.state.data.announcement)",
             "break_on": true,
             "entries": [
                 {
@@ -144,24 +151,10 @@
                     },
                     "condition": "true"
                 },
-                {   // Записываем объявление
-                    "type": "game-data",
-                    "order": "get",
-                    "field": "announcements",
-                    "condition": "true"
-                },
-                {   // Записываем объявление
-                    "type": "game-data",
-                    "order": "set",
-                    "field": "announcements",
-                    "data": {
-                        "contents": "game_data.announcements != null & game_data.announcements.contents != null ? objects.assign(game_data.announcements.contents, post) : post"
-                    },
-                    "condition": "true"
-                },
                 {
                     "type": "write",
                     "condition": "true",
+                    "prepare": "set announcements = gamedata.get('announcements'); gamedata.set('announcements', announcements != null ? (objects.get(announcements, character.map.city.id) != null ? objects.set(announcements, character.map.city.id, objects.assign(objects.get(announcements, character.map.city.id), post)) : objects.set(announcements, character.map.city.id, post)) : post)",
                     "message": [
                         "[СИСТЕМА]\n",
                         "Действие успешно завершено!\n",
@@ -169,22 +162,20 @@
                             "> options != null ? '\n' + (options.includes != null ? 'Вам доступны следующие ' + (options.type = 0 ? 'районы' : 'действия') + ' в ' + (options.type = 0 ? 'городе' : 'области') + ' ' + options.source + '\n\n' + strings.join(options.includes, '> &', '\n') + '\n\n' + 'Для выбора ' + (options.type = 0 ? 'района' : 'действия') + ' введите: ' + command.prefix + 'город выбрать (тут название ' + (options.type = 0 ? 'района' : 'действия') + ', как указанно в списке)' : '\n\nНа данный момент тут нечего делать...\n') + (options.buy != null & options.type != 0 ? '\n\nВ этой области ' + (options.includes != null ? 'также' : '') + ' есть собственность доступная для покупки:\n\n' + strings.join(options.buy, '> &', '\n') + '\n\nДля приобретения введите ' + command.prefix + 'город купить (тут название того, что вы хотите купить. Название можно указывать в любом регистре)' : '\n\nВ данной области нет собственности для покупки...') + '\n\nДля выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти' : '\n\nКажется это тупик и идти дальше некуда... Для выхода ' + (options.type = 0 ? 'из города' : 'в предыдущую область') + ' используйте ' + command.prefix + 'город выйти'",
                         "}"
                     ],
-                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN')) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'RED'), keyboard.createKeyboard('город', arrays.from('Выйти'), 'GREEN'))"
+                    "keyboard": "options.buy = null ? (options.includes != null ? arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город', 'Выйти', 'RED', true, true, true)) : keyboard.createKeyboard('город', 'Выйти', 'RED', true, true, true)) : arrays.concat(keyboard.createKeyboard('город выбрать', options.includes, 'GREEN'), keyboard.createKeyboard('город выбрать', options.buy, 'GREEN'), keyboard.createKeyboard('город', 'Выйти', 'RED', true, true, true))"
                 },
                 { // Перемещение
                     "type": "bind",
                     "ident": "excecutor-remove-announcement",
                     "condition": "true",
-                    "jump": "604800000", // 1 неделя
+                    "jump": "604800000", // 1 неделя 
+                    "notify_error": false,
                     "entries": [
-                        {   // Записываем объявление
-                            "type": "game-data",
-                            "order": "set",
-                            "field": "announcements",
-                            "data": {
-                                "contents": "game_data.announcements != null & game_data.announcements.contents != null ? objects.remove(game_data.announcements.contents, key) : null"
-                            },
-                            "condition": "true"
+                        { // Перемещение
+                            "type": "excecute",
+                            "condition": "true",
+                            "prepare": "announcements = gamedata.get('announcements'); gamedata.set('announcements', objects.set(announcements, character.map.city.id, objects.remove(objects.get(announcements, character.map.city.id), key)))",
+                            "entries": []
                         }
                     ]
                 },

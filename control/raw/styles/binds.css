@@ -1,0 +1,117 @@
+input.search {
+    width: calc(100% - 0.75em);
+    padding: 0.25em;
+    background: var(--background-color-2);
+    border: none;
+    margin-bottom: 0.25em;
+    margin-right: 0.25em;
+    outline: none;
+}
+
+.workflow {
+    width: 100%;
+    height: 100%;
+}
+
+li.binds-row-auto {
+    width: calc(100% - 0.5em);
+    padding: 0.25em;
+    background: var(--background-color-1);
+    transition: 0.2s all cubic-bezier(0.075, 0.82, 0.165, 1);
+    display: grid;
+    grid-template-areas: 
+                    'b b b';
+    grid-template-columns: 30% 35% auto;
+}
+
+li.binds-row-auto:not(.selected){
+    cursor: pointer;
+}
+
+li.binds-row-auto:not(.selected):hover {
+    background: var(--background-color-2);
+}
+
+li.binds-row-auto.selected {
+    grid-template-areas: 'b';
+    grid-template-columns: 100%;
+    border: 1px solid;
+}
+
+.binds-row-editor {
+    display: grid;
+    grid-template-areas:
+                    'a b c'
+                    'd d d';
+    grid-template-rows: 2em max-content;
+    grid-template-columns: min-content min-content auto;
+    min-height: 20em;
+}
+
+.binds-row-editor > * {
+    padding: 0.5em;
+}
+
+.section {
+    padding: 0.25em;
+    overflow: auto;
+    height: 100%;
+}
+
+.excecutor-input {
+    grid-area: c;
+    border: none;
+    outline: none;
+    background-color: var(--background-color-2);
+}
+
+.fire-after {
+    grid-area: b;
+    border: none;
+    outline: none;
+    background-color: var(--background-color-2);
+}
+
+.data-input {
+    grid-area: d;
+    border: none;
+    outline: none;
+    resize: none;
+    background-color: var(--background-color-2);
+}
+
+.bind-remove {
+    grid-area: a;
+}
+
+.tools-cont {
+    display: grid;
+    grid-template-areas: '. .';
+    grid-template-columns: 70% 30%;
+}
+
+.table-unit {
+    pointer-events: none;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.tools-cont.changed {
+    grid-template-areas: '. . .';
+    grid-template-columns: 70% 15% 15%;
+}
+
+.tools-cont > .save {
+    padding: 0.25em;
+    border: none;
+    outline: none;
+    background-color: var(--background-color-2);
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 0.25em;
+    margin-right: 0.25em;
+}
+
+.tools-cont > .save:hover {
+    filter: contrast(0.5);
+}

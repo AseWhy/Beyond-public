@@ -10,12 +10,12 @@ module.exports.lib = {
             total = 0,
             stack = character.map.stack.slice(0, 4).join('/') + '/' ;
 
-        for(let i = 0, leng = source.length; i < leng;i++){
+        for(let i = 0, leng = source.length, inc; i < leng;i++){
             if(source[i].type === 1){
                 if(character.businesses.includes(stack + source[i].id)) {
-                    businesses.push(source[i].display + ' [' + utils.to_ru_number_value(source[i].income) + ' (банов) в сутки]');
+                    businesses.push(source[i].display + ': ' + utils.to_game_price_format(inc = source[i].income + character.stats.skills.trade.value * 0.01 * source[i].income) + ' (банов) в сутки');
                     
-                    total += source[i].income;
+                    total += inc;
                 }
             }
         }
@@ -38,7 +38,7 @@ module.exports.lib = {
                 if(!character.businesses.includes(stack + source[i].id)) {
                     businesses.push(source[i].display);
 
-                    businesses_display.push(source[i].display + ', стоимостью ' + utils.to_ru_number_value(source[i].cost) + ' банов')
+                    businesses_display.push(source[i].display + ', стоимостью ' + utils.to_game_price_format(source[i].cost - source[i].cost * character.stats.skills.trade.value * 0.004) + ' (банов)')
                 } else {
                     businesses_display.push(source[i].display + ' (уже приобретено)');
 
@@ -74,12 +74,6 @@ module.exports.lib = {
     },
 
     addIncome(income, data){
-        if(typeof data === 'number'){
-            income['bans'] = income['bans'] != null ? income['bans'] + data : data;
-
-            return income;
-        }
-
         for(let key in data){
             switch(key){
                 case 'bans':
@@ -95,10 +89,6 @@ module.exports.lib = {
     },
 
     haveCost(data, character){
-        if(typeof data === 'number')
-            if(character.endurance.value <= data)
-                return false;
-
         if(typeof data.endurance === 'number')
             if(character.endurance.value <= data.endurance)
                 return false;
@@ -113,21 +103,18 @@ module.exports.lib = {
     },
 
     parseCost(data){
-        if(typeof data === 'number')
-            return utils.to_ru_number_value(data) + ' (выносливости)';
-
         const buffer = new Array();
 
         for(let key in data){
             switch(key){
                 case 'endurance':
-                    buffer.push(utils.to_ru_number_value(data[key]) + ' (выносливости)');
+                    buffer.push(data[key].toLocaleString('ru-RU') + ' (выносливости)');
                     break;
                 case 'bans':
-                    buffer.push(utils.to_ru_number_value(data[key]) + ' (банов)');
+                    buffer.push(utils.to_game_price_format(data[key]) + ' (банов)');
                     break;
                 case 'backpack':
-                    buffer.push(utils.to_ru_number_value(data[key]) + ' (стройматериалов)');
+                    buffer.push(data[key].toLocaleString('ru-RU') + ' (стройматериалов)');
                     break;
             }
         }
@@ -136,18 +123,15 @@ module.exports.lib = {
     },
 
     parseIncome(data){
-        if(typeof data === 'number')
-            return utils.to_ru_number_value(data) + ' (банов)';
-
         const buffer = new Array();
 
         for(let key in data){
             switch(key){
                 case 'bans':
-                    buffer.push(utils.to_ru_number_value(data[key]) + ' (банов)');
+                    buffer.push(utils.to_game_price_format(data[key]) + ' (банов)');
                     break;
                 case 'backpack':
-                    buffer.push(utils.to_ru_number_value(data[key]) + ' (стройматериалов)');
+                    buffer.push(data[key].toLocaleString('ru-RU') + ' (стройматериалов)');
                     break;
             }
         }
@@ -171,7 +155,7 @@ module.exports.lib = {
 
         for(let i = 0, leng = source.length; i < leng;i++){
             if(source[i].type === 1 && (typeof source[i][field] === 'string' ? source[i][field].toLowerCase() : source[i][field]) === value)
-                return source[i];
+                return {...source[i], cost: source[i].cost - source[i].cost * character.stats.skills.trade.value * 0.004, income: source[i].income + character.stats.skills.trade.value * 0.01 * source[i].income};
         }
 
         return null;

@@ -21,14 +21,47 @@ module.exports.BusinessEntry = class BusinessEntry {
             data.data = JSON.parse(data.data);
 
         if(data.type === 1){
-            this.cost =  typeof data.data.cost === 'object' ? (data.data.cost.bans != null ? data.data.cost.bans : 0) : data.data.cost; // Стоимость в бизнесах только в банах
-            this.income = typeof data.data.income === 'object' ? (data.data.income.bans != null ? data.data.income.bans : 0) : data.data.income; // Доход в бизнесах только в банах
-            this.on_hour = Math.round(this.income / (86400000 / update));
+            this.cost       = typeof data.data.cost === 'object' ? (data.data.cost.bans != null ? data.data.cost.bans : 0) : data.data.cost; // Стоимость в бизнесах только в банах
+            this.income     = typeof data.data.income === 'object' ? (data.data.income.bans != null ? data.data.income.bans : 0) : data.data.income; // Доход в бизнесах только в банах
+            this.on_hour    = Math.round(this.income / (86400000 / update));
         } else {
-            this.work_type = data.data.type != null ? data.data.type : 0;
-            this.cost = data.data.cost;
-            this.income = data.data.income;
-            this.duration = data.data.duration != null ? data.data.duration : 0;
+            this.work_type  = data.data.type != null ? data.data.type : 0;
+            this.cost       = {};
+            this.income     = {};
+            this.busts      = {stats: {}, skills: {}};
+            this.duration   = data.data.duration != null ? data.data.duration : 0;
+
+            if(data.data.cost) {
+                for(let key in data.data.cost){
+                    data.data.cost[key] = new ExpressionPattern(data.data.cost[key].toString(), [], global.common_logger)
+                }
+
+                this.cost = data.data.cost;
+            }
+
+            if(data.data.income) {
+                for(let key in data.data.income){
+                    data.data.income[key] = new ExpressionPattern(data.data.income[key].toString(), [], global.common_logger)
+                }
+
+                this.income = data.data.income;
+            }
+
+            if(data.data.stats) {
+                for(let key in data.data.stats){
+                    data.data.stats[key] = new ExpressionPattern(data.data.stats[key].toString(), [], global.common_logger)
+                }
+
+                this.busts.stats = data.data.stats;
+            }
+
+            if(data.data.skills) {
+                for(let key in data.data.skills){
+                    data.data.skills[key] = new ExpressionPattern(data.data.skills[key].toString(), [], global.common_logger)
+                }
+
+                this.busts.skills = data.data.skills;
+            }
         }
     }
 }
@@ -39,11 +72,11 @@ module.exports.BusinessesManager = class BusinessesManager extends EventManager 
 
         const _ = this;
 
-        _.business = new Map();
-        _.update = config.update != null ? config.update : 1000 * 60 * 60;
-        _.namespace = config.namespace != null ? config.namespace : 'dev-businesses-updater';
-        _.max_transaction_attempts = config.max_transaction_attempts != null ? config.max_transaction_attempts : 5;
-        _.loaded = false;
+        _.business                  = new Map();
+        _.update                    = config.update                     != null ? config.update : 1000 * 60 * 60;
+        _.namespace                 = config.namespace                  != null ? config.namespace : 'dev-businesses-updater';
+        _.max_transaction_attempts  = config.max_transaction_attempts   != null ? config.max_transaction_attempts : 5;
+        _.loaded                    = false;
 
         // Получаю список всех предметов
         void async function GetBusinesses() {
@@ -123,19 +156,23 @@ module.exports.BusinessesManager = class BusinessesManager extends EventManager 
 
                         business = _.business.get(businesses[j][businesses[j].length - 1]); // Получаю целевой бизнес персонажа
 
-                        if(maxs.has((city = businesses[j][3])))
-                            maxs.set(city, maxs.get(city) + business.income)
-                        else
-                            maxs.set(city, business.income)
+                        if(business != null){
+                            if(maxs.has((city = businesses[j][3])))
+                                maxs.set(city, maxs.get(city) + business.income)
+                            else
+                                maxs.set(city, business.income)
 
-                        data[i][1].data.data.businesses_bank[city] = data[i][1].data.data.businesses_bank[city] != null ? data[i][1].data.data.businesses_bank[city] + business.on_hour : business.on_hour;
+                            data[i][1].data.data.businesses_bank[city] = data[i][1].data.data.businesses_bank[city] != null ? data[i][1].data.data.businesses_bank[city] + business.on_hour + data[i][1].stats.skills.trade.value * 0.01 * business.on_hour : business.on_hour + data[i][1].stats.skills.trade.value * 0.01 * business.on_hour;
+                        } else {
+                            global.common_logger.warn("Cannot find business for id " + businesses[j].join('/'));
+                        }
                     }
 
                     for(let entry of maxs){
-                        data[i][1].data.data.businesses_bank[entry[0]] = data[i][1].data.data.businesses_bank[entry[0]] < entry[1] ? data[i][1].data.data.businesses_bank[entry[0]] : entry[1]; // Выравниваем значение по максимальному доходу от бизнесов персонажа
+                        data[i][1].data.data.businesses_bank[entry[0]] = Math.floor(data[i][1].data.data.businesses_bank[entry[0]] < entry[1] ? data[i][1].data.data.businesses_bank[entry[0]] : entry[1]); // Выравниваем значение по максимальному доходу от бизнесов персонажа
                     }
 
-                    data[i][1].change_stack.push('data')
+                    data[i][1].addChange('data');
                 }
 
                 global.managers.statistics.updateStat('sity_business_av_time', performance.now() - start)
@@ -143,8 +180,8 @@ module.exports.BusinessesManager = class BusinessesManager extends EventManager 
         })
     }
 
-    getBusinessesForSity(sity, character){
-        return (sity = new Heap({sity, character})) && [...this.business.values()].filter(e => e.condition.result(sity));
+    getBusinessesForSity(city, character){
+        return (city = new Heap({city, character})) && [...this.business.values()].filter(e => e.condition.result(city));
     }
 
     getBusiness(id){

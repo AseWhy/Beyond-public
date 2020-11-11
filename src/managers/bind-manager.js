@@ -5,13 +5,15 @@ module.exports.BindManadger = class BindManadger {
     constructor(config){
         const _ = this;
 
-        _.excecutors = new Map();
-        _.interval = config.udates_per_minute ? 1000 * (60 / config.udates_per_minute) : 30000;
-        _.loaded = true;
+        _.excecutors    = new Map();
+        _.interval      = config.udates_per_minute ? 1000 * (60 / config.udates_per_minute) : 30000;
+        _.loaded        = true;
+        _.allow         = config.allow;
 
-        global.common_logger.log(`The scheduling manager started with an update interval of ${_.interval} ms`);
+        global.common_logger.log(`The scheduling manager started with an update interval of ${_.interval} ms. It ` + (_.allow == null || _.allow == true ? 'allowed' : 'denied'));
 
-        setInterval(this.update.bind(this), _.interval);
+        if(_.allow == null || _.allow == true)
+            setInterval(this.update.bind(this), _.interval);
     }
 
     async update(){
@@ -50,7 +52,7 @@ module.exports.BindManadger = class BindManadger {
             work_ident: utils.random_id(),
             fire_after: after,
             excecutor: ident,
-            data: JSON.stringify(data)
+            data: JSON.stringify(data).replace(/\\/g, '\\\\')
         }).toString())
     }
 }
